@@ -26,6 +26,7 @@ pnpm-debug.log*
 coverage/
 
 # Local tooling and OS files
+.agents/
 .turbo/
 .cache/
 .DS_Store

@@ -41,25 +41,37 @@ function StylizedIsometricTree({ position, rotationY, scale }: { position: [numb
 
 export function Trees() {
   const treePlacements = useMemo<TreePlacement[]>(() => {
-    const coords: Array<[number, number]> = [
-      // Central walkway green strip
-      [-14, -4.5], [-10, -4.5], [-6, -4.5], [6, -4.5], [10, -4.5], [14, -4.5],
-      [-14, 4.5], [-10, 4.5], [-6, 4.5], [6, 4.5], [10, 4.5], [14, 4.5],
-
-      // Park landscaping
-      [-12, -7], [-8, -7], [8, -7], [12, -7],
-      [-12, 7], [-8, 7], [8, 7], [12, 7],
-
-      // Station A102 green buffer
-      [-22, 13], [-24, 13], [-26, 13],
-      // Station B104 green buffer
-      [20, 23], [22, 23], [24, 23],
+    const rawCoords: Array<[number, number]> = [
+      // 1. Betegaon Residential Park & Green Belt
+      [28, -16], [32, -18], [34, -22], [30, -24], [26, -26], [36, -14],
+      // 2. Saravali Green Zone (East of Highway)
+      [22, 14], [24, 10], [28, 8], [32, 4], [34, 12], [30, 16],
+      // 3. Northern Agricultural & Highway Buffer
+      [10, -38], [14, -42], [22, -44], [26, -42], [4, -36], [8, -44],
+      // 4. Western Tarapur Coastal Green Buffer (Far West of B104)
+      [-64, -12], [-66, -18], [-68, -24], [-62, -6], [-70, -16],
+      // 5. South Betegaon Landscape Belt
+      [36, 32], [38, 26], [40, 20], [34, 38], [38, 42],
     ];
 
-    return coords.map(([x, z], i) => ({
+    // Exclude any coordinate within 10 meters of any charging hub or service center
+    const protectedHubs = [
+      { x: -8, z: -8 },   // Station A102
+      { x: -48, z: -14 }, // Station B104
+      { x: -38, z: 22 },  // Station C201
+      { x: 26, z: 36 },   // Station D305
+      { x: -14, z: 24 },  // Service Center S03
+      { x: -4, z: 0 },    // Central Roundabout
+    ];
+
+    const safeCoords = rawCoords.filter(([tx, tz]) => {
+      return !protectedHubs.some(hub => Math.hypot(tx - hub.x, tz - hub.z) < 9.5);
+    });
+
+    return safeCoords.map(([x, z], i) => ({
       pos: [x, 0, z] as [number, number, number],
       rotY: (i * 1.25) % (Math.PI * 2),
-      scale: 0.9 + (i % 4) * 0.08,
+      scale: 0.85 + (i % 3) * 0.1,
     }));
   }, []);
 
