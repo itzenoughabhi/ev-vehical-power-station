@@ -1,0 +1,25 @@
+{
+  "name": "evnexus-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EVNEXUS — Real-Time EV Charging Network Digital Twin",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"cyan,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "prisma:generate": "cd backend && npm run prisma:generate",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prisma": "^5.22.0"
+  },
+  "dependencies": {
+    "@neon/config": "^1.8.4",
+    "@neon/env": "^1.5.1",
+    "@prisma/client": "^5.22.0",
+    "maplibre-gl": "^6.13.0"
+  }
+}

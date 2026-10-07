@@ -1,0 +1,177 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StationStatus {
+  ONLINE
+  DEGRADED
+  OVERLOADED
+  OFFLINE
+}
+
+enum ChargerStatus {
+  AVAILABLE
+  CHARGING
+  OCCUPIED
+  FAULT
+  MAINTENANCE
+  OFFLINE
+}
+
+enum VehicleStatus {
+  EN_ROUTE
+  ARRIVING
+  QUEUE
+  CHARGER_ASSIGNED
+  CHARGING
+  COMPLETED
+  DEPARTING
+  LEFT_NETWORK
+}
+
+enum IncidentSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum IncidentStatus {
+  ACTIVE
+  INVESTIGATING
+  RESOLVED
+}
+
+model Station {
+  id              String         @id @default(uuid())
+  code            String         @unique // e.g. "A102", "B104", "C201", "D305"
+  name            String         // e.g. "Metro Central Hub"
+  district        String         @default("Downtown Tech District")
+  status          StationStatus  @default(ONLINE)
+  positionX       Float          @default(0.0)
+  positionY       Float          @default(0.0)
+  positionZ       Float          @default(0.0)
+  maxCapacityKw   Float          @default(600.0) // Max grid capacity
+  currentLoadKw   Float          @default(0.0)
+  dailyEnergyKwh  Float          @default(0.0)
+  chargers        Charger[]
+  sessions        ChargingSession[]
+  queueEntries    QueueEntry[]
+  incidents       Incident[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Charger {
+  id            String         @id @default(uuid())
+  code          String         @unique // e.g. "A102-01"
+  stationId     String
+  station       Station        @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  status        ChargerStatus  @default(AVAILABLE)
+  powerKw       Float          @default(150.0) // 150kW or 350kW DC Fast Charger
+  currentPowerKw Float         @default(0.0)
+  failureCount  Int            @default(0)
+  sessions      ChargingSession[]
+  incidents     Incident[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Vehicle {
+  id                  String         @id @default(uuid())
+  code                String         @unique // e.g. "EV-221"
+  model               String         // "CyberSedan", "Apex SUV", "HyperCoupe", "FleetVan"
+  batteryCapacityKwh  Float          @default(75.0)
+  currentBatteryPct   Float          @default(20.0)
+  targetBatteryPct    Float          @default(85.0)
+  status              VehicleStatus  @default(EN_ROUTE)
+  speed               Float          @default(45.0) // km/h
+  positionX           Float          @default(0.0)
+  positionY           Float          @default(0.0)
+  positionZ           Float          @default(0.0)
+  heading             Float          @default(0.0) // rotation in radians
+  destinationStationId String?
+  assignedChargerId   String?
+  etaMinutes          Float          @default(5.0)
+  routeProgress       Float          @default(0.0) // 0.0 to 1.0 along current route
+  sessions            ChargingSession[]
+  queueEntries        QueueEntry[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+model ChargingSession {
+  id                  String         @id @default(uuid())
+  vehicleId           String
+  vehicle             Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  chargerId           String
+  charger             Charger        @relation(fields: [chargerId], references: [id], onDelete: Cascade)
+  stationId           String
+  station             Station        @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  startBatteryPct     Float
+  endBatteryPct       Float?
+  energyDeliveredKwh  Float          @default(0.0)
+  startTime           DateTime       @default(now())
+  endTime             DateTime?
+  status              String         @default("ACTIVE") // ACTIVE, COMPLETED, INTERRUPTED
+}
+
+model QueueEntry {
+  id                   String         @id @default(uuid())
+  stationId            String
+  station              Station        @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  vehicleId            String
+  vehicle              Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  position             Int            @default(1)
+  estimatedWaitMinutes Float          @default(10.0)
+  status               String         @default("WAITING") // WAITING, CALLED, CANCELLED
+  joinedAt             DateTime       @default(now())
+}
+
+model EnergyReading {
+  id              String         @id @default(uuid())
+  timestamp       DateTime       @default(now())
+  networkLoadKw   Float
+  peakDemandKw    Float
+  stationLoads    String         // JSON stringified per-station metrics
+}
+
+model Incident {
+  id          String           @id @default(uuid())
+  type        String           // "CHARGER_FAULT", "GRID_OVERLOAD", "QUEUE_SPIKE", "COMM_TIMEOUT"
+  severity    IncidentSeverity @default(WARNING)
+  stationId   String?
+  station     Station?         @relation(fields: [stationId], references: [id])
+  chargerId   String?
+  charger     Charger?         @relation(fields: [chargerId], references: [id])
+  title       String
+  description String
+  status      IncidentStatus   @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  resolvedAt  DateTime?
+}
+
+model Event {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  type      String   // "STATUS_CHANGE", "FAULT", "ARRIVAL", "CHARGING_START", "COMPLETED", "REDIRECT"
+  severity  String   @default("INFO") // "INFO", "WARNING", "CRITICAL", "SUCCESS"
+  message   String
+  metadata  String?  // JSON string
+}
+
+model SimulationState {
+  id              String   @id @default("singleton")
+  isRunning       Boolean  @default(true)
+  speedMultiplier Float    @default(1.0)
+  currentTick     Int      @default(0)
+  totalEvsCount   Int      @default(12)
+  updatedAt       DateTime @updatedAt
+}
