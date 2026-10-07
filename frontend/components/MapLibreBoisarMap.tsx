@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import maplibregl, { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl';
+import { Map as MapLibreMap, Marker, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
 import { localToLatLon, BOISAR_GEO_CENTER } from '../services/osmRoadGraphService';
@@ -64,7 +64,7 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       ],
     };
 
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: mapContainerRef.current,
       style: osmStyle,
       center: [BOISAR_GEO_CENTER.lon, BOISAR_GEO_CENTER.lat], // [72.7657359, 19.7902325]

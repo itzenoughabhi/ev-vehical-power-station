@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { BOISAR_ROADS, BOISAR_CURVES, RoadDef } from './boisarRoads';
 
@@ -266,18 +266,65 @@ function RoadsideUtilityPoles() {
   );
 }
 
+/**
+ * Renders all 768 authentic OpenStreetMap road ways harvested around Boisar (Overpass API)
+ * directly in 3D space, capturing real curves, industrial MIDC connections, Betegaon & Saravali lanes.
+ */
+function RealOsmRoadsMesh() {
+  const [segments, setSegments] = useState<{ x: number; z: number }[][]>([]);
+
+  useEffect(() => {
+    fetch('/data/boisar_road_graph.json')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.segments) {
+          const segs = data.segments.map((s: any) => s.geometry3D);
+          setSegments(segs);
+        }
+      })
+      .catch((err) => console.warn('Could not load OSM road graph in 3D:', err));
+  }, []);
+
+  const lineGeo = useMemo(() => {
+    if (!segments.length) return null;
+    const positions: number[] = [];
+    segments.forEach((pts) => {
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        positions.push(p1.x, 0.03, p1.z);
+        positions.push(p2.x, 0.03, p2.z);
+      }
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return geo;
+  }, [segments]);
+
+  if (!lineGeo) return null;
+
+  return (
+    <lineSegments geometry={lineGeo}>
+      <lineBasicMaterial color="#64748b" opacity={0.6} transparent linewidth={1} />
+    </lineSegments>
+  );
+}
+
 export function RoadNetwork() {
   return (
     <group name="BoisarRoadNetwork">
-      {/* Natural curved road geometry for all Boisar avenues */}
+      {/* 1. All 768 authentic OpenStreetMap road ways across Boisar */}
+      <RealOsmRoadsMesh />
+
+      {/* 2. Natural curved road geometry for all primary Boisar avenues */}
       {BOISAR_ROADS.map((road) => (
         <CurvedRoadMesh key={road.id} road={road} />
       ))}
 
-      {/* Central Boisar Roundabout */}
+      {/* 3. Central Boisar Roundabout */}
       <BoisarCentralRoundabout />
 
-      {/* Concrete Utility Poles & Streetlights */}
+      {/* 4. Concrete Utility Poles & Streetlights */}
       <RoadsideUtilityPoles />
     </group>
   );

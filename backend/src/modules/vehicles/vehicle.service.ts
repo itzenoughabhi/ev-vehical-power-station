@@ -1,6 +1,13 @@
 import { Vehicle, VehicleStatus, VehicleModel, Position3D } from '../../types';
 import { stationService } from '../stations/station.service';
 import { eventService } from '../events/event.service';
+import {
+  findShortestPath,
+  findNearestNodeId,
+  generateCurvedRouteFromNodeIds,
+  getStationNodeId,
+  ROAD_NODES,
+} from './road.graph';
 
 export class VehicleService {
   private static instance: VehicleService;
@@ -17,73 +24,34 @@ export class VehicleService {
     return VehicleService.instance;
   }
 
-  // Predefined curved road routes connecting Boisar geographic nodes
+  // Predefined curved road routes connecting Boisar geographic nodes via real road graph
   public static getRouteForStation(stationCode: string): Position3D[] {
-    switch (stationCode) {
-      case 'A102': // Boisar Central Hub (via Boisar-Palghar highway & Station Access Loop)
-        return [
-          { x: 28, y: 0, z: 52 },
-          { x: 24, y: 0, z: 36 },
-          { x: 16, y: 0, z: 22 },
-          { x: 5, y: 0, z: 10 },
-          { x: -4, y: 0, z: 0 },
-          { x: -6, y: 0, z: -8 }, // Station A102
-        ];
-      case 'B104': // Navapur Road Hub (Westward across Tarapur MIDC)
-        return [
-          { x: 16, y: 0, z: 22 },
-          { x: 5, y: 0, z: 10 },
-          { x: -4, y: 0, z: 0 },
-          { x: -16, y: 0, z: -4 },
-          { x: -30, y: 0, z: -10 },
-          { x: -48, y: 0, z: -14 }, // Station B104
-        ];
-      case 'C201': // Tarapur MIDC Industrial Hub (via MIDC Ring Road)
-        return [
-          { x: -4, y: 0, z: 0 },
-          { x: -16, y: 0, z: -4 },
-          { x: -22, y: 0, z: 10 },
-          { x: -38, y: 0, z: 22 }, // Station C201
-        ];
-      case 'D305': // Boisar–Palghar Corridor
-      default:
-        return [
-          { x: -4, y: 0, z: 0 },
-          { x: 5, y: 0, z: 10 },
-          { x: 16, y: 0, z: 22 },
-          { x: 26, y: 0, z: 36 }, // Station D305
-        ];
-    }
+    const endNodeId = getStationNodeId(stationCode);
+    const startNodeId = stationCode === 'D305' || stationCode === 'A102' ? 'PALGHAR_SOUTH' : 'NORTH_OUTER';
+    const path = findShortestPath(startNodeId, endNodeId);
+    return generateCurvedRouteFromNodeIds(path);
   }
 
-  public static getRouteForServiceCenter(): Position3D[] {
-    return [
-      { x: 24, y: 0, z: 36 },
-      { x: 16, y: 0, z: 22 },
-      { x: 5, y: 0, z: 10 },
-      { x: -2, y: 0, z: 16 },
-      { x: -14, y: 0, z: 24 }, // S03 EV Service Center
-    ];
+  public static getRouteForServiceCenter(fromPos?: Position3D): Position3D[] {
+    const endNodeId = 'MIDC_S03';
+    const startNodeId = fromPos ? findNearestNodeId(fromPos) : 'CENTRAL_ROUNDABOUT';
+    const path = findShortestPath(startNodeId, endNodeId);
+    return generateCurvedRouteFromNodeIds(path, fromPos);
   }
 
   public static getRouteFromCurrentPositionTo(fromPos: Position3D, toPos: Position3D): Position3D[] {
-    // Generate curved midpoint waypoints
-    const midX = (fromPos.x + toPos.x) / 2 + (Math.sin(fromPos.z) * 4);
-    const midZ = (fromPos.z + toPos.z) / 2 + (Math.cos(fromPos.x) * 4);
-    return [
-      { ...fromPos },
-      { x: midX, y: 0, z: midZ },
-      { ...toPos },
-    ];
+    const startNodeId = findNearestNodeId(fromPos);
+    const endNodeId = findNearestNodeId(toPos);
+    const path = findShortestPath(startNodeId, endNodeId);
+    return generateCurvedRouteFromNodeIds(path, fromPos, toPos);
   }
 
   public static getDepartureRoute(stationPosition: Position3D): Position3D[] {
-    return [
-      { x: stationPosition.x, y: 0, z: stationPosition.z },
-      { x: stationPosition.x > 0 ? 24 : -16, y: 0, z: stationPosition.z > 0 ? 36 : -4 },
-      { x: -4, y: 0, z: 0 }, // MIDC central circle
-      { x: 28, y: 0, z: -48 }, // Outer Boisar route
-    ];
+    const startNodeId = findNearestNodeId(stationPosition);
+    // Direct vehicles towards outer highway exits
+    const endNodeId = stationPosition.z > 20 ? 'PALGHAR_SOUTH' : 'NORTH_OUTER';
+    const path = findShortestPath(startNodeId, endNodeId);
+    return generateCurvedRouteFromNodeIds(path, stationPosition);
   }
 
   private seedVehicles() {
