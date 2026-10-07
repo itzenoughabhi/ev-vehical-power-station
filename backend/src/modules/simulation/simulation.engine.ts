@@ -13,6 +13,10 @@ export class SimulationEngine {
   private tickCount: number = 0;
   private onTickCallbacks: ((data: any) => void)[] = [];
 
+  // High-frequency 4Hz tick for smooth fluid 60 FPS interpolation
+  public static readonly TICK_INTERVAL_MS = 250;
+  public static readonly DT = 0.25;
+
   // End-to-end presentation scenario tracking (Section 25)
   private scenarioStep: number = 0;
 
@@ -27,12 +31,12 @@ export class SimulationEngine {
 
   public start() {
     if (this.intervalTimer) return;
-    console.log('🚀 [Simulation Engine] Starting EVNEXUS Boisar Real-Time Digital Twin tick cycle...');
+    console.log('🚀 [Simulation Engine] Starting EVNEXUS Boisar Real-Time Digital Twin tick cycle (4Hz high-resolution)...');
     this.intervalTimer = setInterval(() => {
       if (this.isRunning) {
         this.step();
       }
-    }, 1000);
+    }, SimulationEngine.TICK_INTERVAL_MS);
   }
 
   public stop() {
@@ -75,16 +79,21 @@ export class SimulationEngine {
       this.processVehicleTick(vehicle, stations, sc);
     }
 
-    // 2. Update energy & grid readings
-    energyService.recordTick();
+    // 2. Update energy & grid readings (every 4 ticks = 1 second)
+    if (this.tickCount % 4 === 0) {
+      energyService.recordTick();
+    }
 
-    // 3. Evaluate AI queue optimization recommendations
-    const newRecommendation = aiService.evaluateNetworkOptimization();
+    // 3. Evaluate AI queue optimization recommendations (every 4 ticks = 1 second)
+    let newRecommendation = null;
+    if (this.tickCount % 4 === 0) {
+      newRecommendation = aiService.evaluateNetworkOptimization();
+    }
 
     // 4. Update service bay progress
     for (const bay of sc.bays) {
       if (bay.status === 'OCCUPIED' && bay.progressPct !== undefined && bay.progressPct < 100) {
-        bay.progressPct = Math.min(100, Math.round(bay.progressPct + 4 * this.speedMultiplier));
+        bay.progressPct = Math.min(100, Math.round(bay.progressPct + 4 * this.speedMultiplier * SimulationEngine.DT));
         if (bay.progressPct >= 100) {
           const v = vehicleService.getVehicleById(bay.vehicleId || '');
           if (v) {
@@ -143,9 +152,9 @@ export class SimulationEngine {
         const dz = targetWp.z - vehicle.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier;
+        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier * SimulationEngine.DT;
 
-        if (dist <= moveStep || dist < 0.6) {
+        if (dist <= moveStep || dist < 0.4) {
           vehicle.position = { ...targetWp };
           vehicle.currentWaypointIndex++;
           if (vehicle.currentWaypointIndex >= waypoints.length) {
@@ -275,10 +284,10 @@ export class SimulationEngine {
       }
 
       case 'CHARGING': {
-        const chargeInc = (1.2 * this.speedMultiplier);
+        const chargeInc = (1.2 * this.speedMultiplier) * SimulationEngine.DT;
         vehicle.currentBatteryPct = Math.min(100, Math.round((vehicle.currentBatteryPct + chargeInc) * 10) / 10);
         vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
-        vehicle.energyConsumedKwh += Math.round(0.4 * this.speedMultiplier * 10) / 10;
+        vehicle.energyConsumedKwh += Math.round(0.4 * this.speedMultiplier * SimulationEngine.DT * 10) / 10;
 
         if (vehicle.currentBatteryPct >= vehicle.targetBatteryPct) {
           vehicle.status = 'COMPLETED';
@@ -329,9 +338,9 @@ export class SimulationEngine {
         const dx = targetWp.x - vehicle.position.x;
         const dz = targetWp.z - vehicle.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier;
+        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier * SimulationEngine.DT;
 
-        if (dist <= moveStep) {
+        if (dist <= moveStep || dist < 0.4) {
           vehicle.position = { ...targetWp };
           vehicle.currentWaypointIndex++;
           if (vehicle.currentWaypointIndex >= waypoints.length) {
@@ -353,6 +362,7 @@ export class SimulationEngine {
         vehicle.routeWaypoints = newRoute;
         vehicle.currentWaypointIndex = 0;
         vehicle.position = { ...newRoute[0] };
+        vehicle.heading = newRoute.length > 1 ? Math.atan2(newRoute[1].x - newRoute[0].x, newRoute[1].z - newRoute[0].z) : 0;
         vehicle.currentBatteryPct = Math.floor(25 + Math.random() * 35);
         vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
         vehicle.energyConsumedKwh = 0;
@@ -366,7 +376,7 @@ export class SimulationEngine {
         // Vehicle is in repair bay
         vehicle.speed = 0;
         if (vehicle.motorTemperatureC > 55) {
-          vehicle.motorTemperatureC = Math.max(55, Math.round(vehicle.motorTemperatureC - 1.5 * this.speedMultiplier));
+          vehicle.motorTemperatureC = Math.max(55, Math.round(vehicle.motorTemperatureC - (1.5 * this.speedMultiplier * SimulationEngine.DT)));
         }
         if (vehicle.batteryTemperatureC > 30) {
           vehicle.batteryTemperatureC = Math.max(30, Math.round(vehicle.batteryTemperatureC - 0.8 * this.speedMultiplier));

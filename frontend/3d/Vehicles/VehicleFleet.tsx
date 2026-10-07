@@ -72,39 +72,63 @@ function VehicleItem({ vehicle }: { vehicle: Vehicle }) {
 
   const groupRef = useRef<THREE.Group>(null);
 
+  const simSpeed = useDigitalTwinStore((s) => s.simulationSpeed);
+  const isMoving = (vehicle.status === 'EN_ROUTE' || vehicle.status === 'DEPARTING') && vehicle.speed > 0;
+
   useFrame((_, delta) => {
     if (!groupRef.current) return;
 
-    groupRef.current.position.x = THREE.MathUtils.damp(
-      groupRef.current.position.x,
-      vehicle.position.x,
-      12,
-      delta
-    );
-    groupRef.current.position.z = THREE.MathUtils.damp(
-      groupRef.current.position.z,
-      vehicle.position.z,
-      12,
-      delta
-    );
+    if (isMoving) {
+      // 1. Continuous forward velocity along the road heading at 60 FPS
+      const speedMultiplier = (vehicle.speed * 0.04) * (simSpeed || 1.0);
+      const heading = vehicle.heading ?? 0;
+      const forwardX = Math.sin(heading) * speedMultiplier * delta;
+      const forwardZ = Math.cos(heading) * speedMultiplier * delta;
+
+      // Advance continuously between server ticks
+      groupRef.current.position.x += forwardX;
+      groupRef.current.position.z += forwardZ;
+
+      // 2. Soft error reconciliation towards server authoritative position
+      // Using exponential blend: never snaps, never freezes, keeps constant speed
+      groupRef.current.position.x += (vehicle.position.x - groupRef.current.position.x) * (1 - Math.exp(-4 * delta));
+      groupRef.current.position.z += (vehicle.position.z - groupRef.current.position.z) * (1 - Math.exp(-4 * delta));
+    } else {
+      // 3. Stationary / Parked: smoothly damp into charger bay / queue slot / repair bay
+      groupRef.current.position.x = THREE.MathUtils.damp(
+        groupRef.current.position.x,
+        vehicle.position.x,
+        8,
+        delta
+      );
+      groupRef.current.position.z = THREE.MathUtils.damp(
+        groupRef.current.position.z,
+        vehicle.position.z,
+        8,
+        delta
+      );
+    }
     groupRef.current.position.y = 0.22;
 
+    // 4. Smooth continuous heading rotation (no instant snapping on turns)
     const targetHeading = vehicle.heading ?? 0;
     let diff = targetHeading - groupRef.current.rotation.y;
     diff = THREE.MathUtils.euclideanModulo(diff + Math.PI, Math.PI * 2) - Math.PI;
-    groupRef.current.rotation.y += diff * (1 - Math.exp(-12 * delta));
+    groupRef.current.rotation.y += diff * (1 - Math.exp(-8 * delta));
   });
 
   const routePoints = useMemo(() => {
     if (!isSelected || !vehicle.routeWaypoints || vehicle.routeWaypoints.length < 2) {
       return null;
     }
+    const curX = groupRef.current ? groupRef.current.position.x : vehicle.position.x;
+    const curZ = groupRef.current ? groupRef.current.position.z : vehicle.position.z;
     const pts: [number, number, number][] = [
-      [vehicle.position.x, 0.1, vehicle.position.z],
+      [curX, 0.12, curZ],
     ];
     for (let i = vehicle.currentWaypointIndex; i < vehicle.routeWaypoints.length; i++) {
       const wp = vehicle.routeWaypoints[i];
-      pts.push([wp.x, 0.1, wp.z]);
+      pts.push([wp.x, 0.12, wp.z]);
     }
     return pts;
   }, [isSelected, vehicle.position, vehicle.routeWaypoints, vehicle.currentWaypointIndex]);
