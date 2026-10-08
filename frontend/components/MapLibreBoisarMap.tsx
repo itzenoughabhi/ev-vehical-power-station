@@ -68,9 +68,9 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       container: mapContainerRef.current,
       style: osmStyle,
       center: [BOISAR_GEO_CENTER.lon, BOISAR_GEO_CENTER.lat], // [72.7657359, 19.7902325]
-      zoom: 14.2,
-      pitch: 35,
-      bearing: -15,
+      zoom: 12.0,
+      pitch: 25,
+      bearing: -5,
       maxPitch: 65,
     });
 
@@ -234,15 +234,33 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         .addTo(map);
       markersRef.current.push(marker);
     });
+
+    // 6. Civic & Town Landmarks (Mandir, Market, Hospital, Mall)
+    const civicLandmarks = [
+      { name: 'Shri Ram Mandir', icon: '🕉️', pos: { x: 26, z: 0 }, color: 'bg-amber-600 border-amber-400' },
+      { name: 'Station Bazaar', icon: '🛍️', pos: { x: 12, z: -22 }, color: 'bg-emerald-600 border-emerald-400' },
+      { name: 'District Hospital', icon: '🏥', pos: { x: 10, z: -42 }, color: 'bg-red-600 border-red-400' },
+      { name: 'Grand Central Mall', icon: '🏬', pos: { x: -22, z: -18 }, color: 'bg-sky-600 border-sky-400' },
+    ];
+    civicLandmarks.forEach((lm) => {
+      const geo = localToLatLon(lm.pos.x, lm.pos.z);
+      const el = document.createElement('div');
+      el.className = `cursor-pointer px-1.5 py-0.5 rounded-full border text-[9px] font-sans font-semibold flex items-center gap-1 text-white shadow-sm transition-transform hover:scale-105 ${lm.color}`;
+      el.innerHTML = `<span>${lm.icon}</span><span>${lm.name}</span>`;
+      const marker = new Marker({ element: el })
+        .setLngLat([geo.lon, geo.lat])
+        .addTo(map);
+      markersRef.current.push(marker);
+    });
   }, [mapLoaded, stations, vehicles, powerGrid, serviceCenter, homeChargers, selectStation, selectVehicle, selectGrid, selectServiceCenter, selectHomeCharger]);
 
   const handleRecenter = () => {
     if (!mapRef.current) return;
     mapRef.current.flyTo({
       center: [BOISAR_GEO_CENTER.lon, BOISAR_GEO_CENTER.lat],
-      zoom: 14.2,
-      pitch: 35,
-      bearing: -15,
+      zoom: 12.0,
+      pitch: 25,
+      bearing: -5,
       essential: true,
     });
   };

@@ -9,7 +9,7 @@ import { useDigitalTwinStore } from '../../store/useDigitalTwinStore';
 function PylonTowerModel({ position }: { position: [number, number, number] }) {
   const { scene } = useGLTF('/models/city/signal_tower.glb');
   return (
-    <group position={position} scale={[0.014, 0.014, 0.014]}>
+    <group position={position} scale={[0.25, 0.25, 0.25]}>
       <Clone object={scene} castShadow />
     </group>
   );
@@ -71,51 +71,51 @@ export function PowerGridSystem() {
 
   const statusColor = isOverloaded ? '#ef4444' : (powerGrid?.loadPercentage ?? 68) > 75 ? '#f59e0b' : '#10b981';
 
-  // Feeder transmission line corridors from Substation GRID-S01 [-26, 0, -38]
+  // Feeder transmission line corridors from Substation GRID-S01 [-48, 0, -65]
   const feederLines = useMemo(() => {
     return [
-      // Feeder 1: Substation -> Boisar Central Hub A102 [-8, 0, -8]
+      // Feeder 1: Substation -> Boisar Central Hub A102 [-6, 0, -18]
       {
         id: 'fdr-a102',
         color: statusColor,
         points: [
-          [-26, 6.2, -38] as [number, number, number],
-          [-18, 6.2, -26] as [number, number, number],
-          [-10, 5.8, -16] as [number, number, number],
-          [-8, 4.2, -8] as [number, number, number],
+          [-48, 6.2, -65] as [number, number, number],
+          [-30, 6.2, -45] as [number, number, number],
+          [-16, 5.8, -28] as [number, number, number],
+          [-6, 4.2, -18] as [number, number, number],
         ],
       },
-      // Feeder 2: Substation -> Navapur Road Hub B104 [-48, 0, -14]
+      // Feeder 2: Substation -> Navapur Road Hub B104 [-48, 0, -28]
       {
         id: 'fdr-b104',
         color: statusColor,
         points: [
-          [-26, 6.2, -38] as [number, number, number],
-          [-34, 6.2, -28] as [number, number, number],
-          [-42, 6.0, -20] as [number, number, number],
-          [-48, 4.2, -14] as [number, number, number],
+          [-48, 6.2, -65] as [number, number, number],
+          [-48, 6.2, -48] as [number, number, number],
+          [-48, 5.0, -36] as [number, number, number],
+          [-48, 4.2, -28] as [number, number, number],
         ],
       },
-      // Feeder 3: Substation -> Tarapur MIDC Industrial Hub C201 [-38, 0, 22]
+      // Feeder 3: Substation -> Tarapur MIDC Industrial Hub C201 [-48, 0, 22]
       {
         id: 'fdr-c201',
         color: statusColor,
         points: [
-          [-26, 6.2, -38] as [number, number, number],
-          [-28, 6.2, -10] as [number, number, number],
-          [-34, 6.0, 8] as [number, number, number],
-          [-38, 4.2, 22] as [number, number, number],
+          [-48, 6.2, -65] as [number, number, number],
+          [-48, 6.2, -20] as [number, number, number],
+          [-48, 5.8, 4] as [number, number, number],
+          [-48, 4.2, 22] as [number, number, number],
         ],
       },
-      // Feeder 4: Substation -> S03 Service Center [-14, 0, 24]
+      // Feeder 4: Substation -> S03 Service Center [-28, 0, 54]
       {
         id: 'fdr-s03',
         color: statusColor,
         points: [
-          [-26, 6.2, -38] as [number, number, number],
-          [-16, 6.0, -12] as [number, number, number],
-          [-10, 5.8, 6] as [number, number, number],
-          [-14, 4.2, 24] as [number, number, number],
+          [-48, 6.2, -65] as [number, number, number],
+          [-38, 6.0, -25] as [number, number, number],
+          [-30, 5.8, 18] as [number, number, number],
+          [-28, 4.2, 54] as [number, number, number],
         ],
       },
       // Feeder 5: Substation -> Betegaon & Saravali Domestic Grid
@@ -123,16 +123,16 @@ export function PowerGridSystem() {
         id: 'fdr-res',
         color: statusColor,
         points: [
-          [-26, 6.2, -38] as [number, number, number],
-          [2, 6.2, -32] as [number, number, number],
-          [18, 6.0, -10] as [number, number, number],
-          [26, 4.8, 14] as [number, number, number],
+          [-48, 6.2, -65] as [number, number, number],
+          [-10, 6.2, -40] as [number, number, number],
+          [20, 6.0, -10] as [number, number, number],
+          [48, 4.8, 30] as [number, number, number],
         ],
       },
     ];
   }, [statusColor]);
 
-  const subPos = powerGrid?.position || { x: -26, y: 0, z: -38 };
+  const subPos = powerGrid?.position || { x: -48, y: 0, z: -65 };
 
   return (
     <group name="PowerGridSystem">

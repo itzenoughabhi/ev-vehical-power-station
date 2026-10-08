@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
-import { Plus, Minus, RotateCcw, Map, Zap, Globe } from 'lucide-react';
+import { Plus, Minus, RotateCcw, Map, Zap, Globe, Hand } from 'lucide-react';
 
 export function MapControls() {
   const mapMode = useDigitalTwinStore((s) => s.mapMode);
@@ -14,31 +14,35 @@ export function MapControls() {
   const zoomOut = useDigitalTwinStore((s) => s.zoomOut);
   const toggleGridOverlay = useDigitalTwinStore((s) => s.toggleGridOverlay);
   const isGridOverlayActive = useDigitalTwinStore((s) => s.isGridOverlayActive);
+  const isPanMode = useDigitalTwinStore((s) => s.isPanMode);
+  const togglePanMode = useDigitalTwinStore((s) => s.togglePanMode);
 
   return (
     <div className="fixed bottom-6 right-8 z-20 flex items-center gap-2 select-none pointer-events-auto font-sans">
-      {/* Real OSM Map Toggle */}
-      {mapMode !== 'REAL_MAP' && (
-        <button
-          onClick={() => setMapMode('REAL_MAP')}
-          className="px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 bg-[#111827]/90 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700"
-          title="Switch to Real OpenStreetMap Geographic Foundation"
-        >
-          <Globe className="w-3.5 h-3.5 text-emerald-400" />
-          <span>REAL OSM MAP</span>
-        </button>
-      )}
+      {/* Real OSM Map / 3D Digital Twin Toggle */}
+      <button
+        onClick={() => setMapMode(mapMode === 'REAL_MAP' ? '3D_TWIN' : 'REAL_MAP')}
+        className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
+          mapMode === 'REAL_MAP'
+            ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20 ring-1 ring-emerald-400'
+            : 'bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
+        }`}
+        title={mapMode === 'REAL_MAP' ? 'Switch to 3D Digital Twin View' : 'Turn on Real OpenStreetMap GIS Foundation'}
+      >
+        <Globe className={`w-3.5 h-3.5 ${mapMode === 'REAL_MAP' ? 'text-white' : 'text-emerald-600'}`} />
+        <span>{mapMode === 'REAL_MAP' ? '3D DIGITAL TWIN' : 'REAL OSM MAP'}</span>
+      </button>
 
       {/* Power Grid Lines Toggle */}
       <button
         onClick={() => toggleGridOverlay()}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
           isGridOverlayActive
-            ? 'bg-sky-600 text-white border-sky-400 shadow-sky-900/40'
-            : 'bg-[#111827]/90 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
+            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/20'
+            : 'bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
         }`}
       >
-        <Zap className="w-3.5 h-3.5 text-sky-400" />
+        <Zap className="w-3.5 h-3.5 text-blue-600" />
         <span>ENERGY FLOW</span>
       </button>
 
@@ -47,20 +51,34 @@ export function MapControls() {
         onClick={() => toggle2dMap()}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
           is2dMapOpen
-            ? 'bg-blue-600 text-white border-blue-400 shadow-blue-900/40'
-            : 'bg-[#111827]/90 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
+            ? 'bg-blue-600 text-white border-blue-500 shadow-blue-500/20'
+            : 'bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
         }`}
       >
         <Map className="w-3.5 h-3.5" />
         <span>TOPOLOGY</span>
       </button>
 
+      {/* Swipe / Pan Map Toggle */}
+      <button
+        onClick={() => togglePanMode()}
+        className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
+          isPanMode
+            ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20 ring-1 ring-emerald-400'
+            : 'bg-white/95 backdrop-blur-md text-slate-700 hover:text-slate-900 border-slate-200/90 hover:bg-slate-50'
+        }`}
+        title={isPanMode ? 'Pan Mode Active: Click & drag or swipe to move around map' : 'Click to enable 1-click Swipe/Pan Map mode'}
+      >
+        <Hand className={`w-3.5 h-3.5 ${isPanMode ? 'text-white' : 'text-emerald-600'}`} />
+        <span>{isPanMode ? 'PANNING' : 'SWIPE MAP'}</span>
+      </button>
+
       {/* Camera Controls */}
-      <div className="bg-[#111827]/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 shadow-md flex items-center gap-1">
+      <div className="bg-white/95 backdrop-blur-md p-1 rounded-xl border border-slate-200/90 shadow-md flex items-center gap-1">
         <button
           onClick={zoomIn}
           title="Zoom In"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -68,7 +86,7 @@ export function MapControls() {
         <button
           onClick={zoomOut}
           title="Zoom Out"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
         >
           <Minus className="w-4 h-4" />
         </button>
@@ -76,7 +94,7 @@ export function MapControls() {
         <button
           onClick={recenterCamera}
           title="Reset Camera (Boisar Elevated View)"
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
         </button>

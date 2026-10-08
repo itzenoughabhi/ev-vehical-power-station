@@ -37,41 +37,41 @@ export function PowerGridPanel() {
 
   return (
     <div className="fixed top-20 right-8 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
-      <div className="bg-[#111827]/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-800 text-slate-200 font-sans text-xs">
+      <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-200/90 text-slate-800 font-sans text-xs">
         {/* Header */}
-        <div className="flex items-start justify-between pb-2.5 border-b border-slate-800">
+        <div className="flex items-start justify-between pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm ${
-              isOverloaded ? 'bg-red-600 animate-pulse' : 'bg-sky-600'
+            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm ${
+              isOverloaded ? 'bg-red-600 animate-pulse' : 'bg-blue-600'
             }`}>
               <Zap className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white tracking-tight">
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
                 {grid.substationId} {grid.substationName}
               </h2>
-              <p className={`text-[11px] font-bold ${isOverloaded ? 'text-red-400' : 'text-emerald-400'}`}>
+              <p className={`text-[11px] font-bold ${isOverloaded ? 'text-red-600' : 'text-emerald-600'}`}>
                 {isOverloaded ? '⚠ GRID OVERLOAD RISK' : '● NOMINAL DISTRIBUTION'}
               </p>
             </div>
           </div>
           <button
             onClick={clearSelection}
-            className="text-slate-500 hover:text-white transition-colors p-1 rounded hover:bg-slate-800"
+            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-lg hover:bg-slate-100"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Load Gauge */}
-        <div className="my-2.5 p-2.5 bg-slate-900/80 border border-slate-800/80 rounded-lg">
+        <div className="my-2.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-slate-400 font-medium">SUBSTATION CAPACITY LOAD</span>
-            <span className={`font-mono font-bold ${isOverloaded ? 'text-red-400 text-sm' : 'text-white'}`}>
+            <span className="text-slate-500 font-medium">SUBSTATION CAPACITY LOAD</span>
+            <span className={`font-mono font-bold ${isOverloaded ? 'text-red-600 text-sm' : 'text-slate-900'}`}>
               {grid.currentLoadMw} MW / {grid.capacityMw} MW ({grid.loadPercentage}%)
             </span>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 isOverloaded ? 'bg-red-500' : grid.loadPercentage > 75 ? 'bg-amber-500' : 'bg-emerald-500'
@@ -83,8 +83,8 @@ export function PowerGridPanel() {
 
         {/* Overload Alert Banner */}
         {isOverloaded && (
-          <div className="mb-2.5 p-2 rounded-lg bg-red-950/60 border border-red-800 text-red-200 text-[11px] flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <div className="mb-2.5 p-2 rounded-xl bg-red-50 border border-red-300 text-red-800 text-[11px] flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
               <strong className="block font-bold">GRID OVERLOAD RISK DETECTED</strong>
               <span>Substation at 91% capacity. EVNEXUS recommends shifting charging load from Station A102 to Station B104.</span>
@@ -93,23 +93,23 @@ export function PowerGridPanel() {
         )}
 
         {/* Feeder Distribution Lines */}
-        <div className="mt-2 pt-2 border-t border-slate-800">
-          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold block mb-2 font-mono">
+        <div className="mt-2 pt-2 border-t border-slate-100">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-2 font-mono">
             High-Voltage Distribution Feeders
           </span>
           <div className="space-y-1.5">
             {grid.feeders?.map((fdr: any) => (
-              <div key={fdr.id} className="p-2 rounded bg-slate-900/60 border border-slate-800/60 text-[11px]">
+              <div key={fdr.id} className="p-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px]">
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-medium text-slate-200">{fdr.name}</span>
-                  <span className={`font-mono font-semibold ${
-                    fdr.status === 'CRITICAL' ? 'text-red-400' : fdr.status === 'HIGH' ? 'text-amber-400' : 'text-emerald-400'
+                  <span className="font-semibold text-slate-800">{fdr.name}</span>
+                  <span className={`font-mono font-bold ${
+                    fdr.status === 'CRITICAL' ? 'text-red-600' : fdr.status === 'HIGH' ? 'text-amber-600' : 'text-emerald-600'
                   }`}>
                     {fdr.loadMw} / {fdr.capacityMw} MW
                   </span>
                 </div>
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span className="font-mono">{fdr.id}</span>
+                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                  <span>{fdr.id}</span>
                   <span className="uppercase">{fdr.status}</span>
                 </div>
               </div>
@@ -118,13 +118,13 @@ export function PowerGridPanel() {
         </div>
 
         {/* Energy Surge Control Button */}
-        <div className="mt-3 pt-2.5 border-t border-slate-800">
+        <div className="mt-3 pt-2.5 border-t border-slate-100">
           <button
             onClick={handleToggleSurge}
-            className={`w-full py-2 px-3 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm ${
+            className={`w-full py-2 px-3 rounded-xl font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-sm ${
               grid.isSurgeActive
-                ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-900/50 ring-2 ring-red-400'
-                : 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-900/50'
+                ? 'bg-red-600 hover:bg-red-700 text-white ring-2 ring-red-400'
+                : 'bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20'
             }`}
           >
             <Activity className="w-3.5 h-3.5" />

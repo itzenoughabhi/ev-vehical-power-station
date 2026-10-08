@@ -7,8 +7,17 @@ import { HomeCharger } from '../../types';
 
 function HouseWithDrivewayModel({ position, rotation = [0, 0, 0] }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   const { scene } = useGLTF('/models/city/house.glb');
+
+  React.useEffect(() => {
+    scene.traverse((child: any) => {
+      if (child.isMesh && child.geometry && !child.geometry.attributes.normal) {
+        child.geometry.computeVertexNormals();
+      }
+    });
+  }, [scene]);
+
   return (
-    <group position={position} rotation={rotation} scale={[0.85, 0.85, 0.85]}>
+    <group position={position} rotation={rotation} scale={[0.26, 0.26, 0.26]}>
       <Clone object={scene} castShadow receiveShadow />
     </group>
   );
@@ -37,31 +46,31 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
         selectHomeCharger(hc.homeId);
       }}
     >
-      {/* House with Driveway model */}
+      {/* House with Driveway model accurately scaled */}
       <Suspense fallback={null}>
         <HouseWithDrivewayModel position={[0, 0, 0]} rotation={[0, -Math.PI / 4, 0]} />
       </Suspense>
 
       {/* Driveway Concrete Slab */}
-      <mesh position={[2.8, 0.04, 2.2]} receiveShadow>
-        <boxGeometry args={[3.2, 0.08, 5.2]} />
+      <mesh position={[1.8, 0.04, 1.2]} receiveShadow>
+        <boxGeometry args={[2.4, 0.08, 4.4]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
 
       {/* Wall-mounted Home Charger Wallbox (7.2 kW AC Charger) */}
-      <group position={[1.4, 1.4, 0.5]}>
+      <group position={[0.7, 1.1, 0.3]}>
         <mesh castShadow>
-          <boxGeometry args={[0.28, 0.45, 0.18]} />
+          <boxGeometry args={[0.24, 0.38, 0.16]} />
           <meshStandardMaterial color="#1e293b" metalness={0.4} />
         </mesh>
         {/* LED Indicator Light */}
-        <mesh position={[0, 0.08, 0.1]}>
-          <circleGeometry args={[0.04, 16]} />
+        <mesh position={[0, 0.06, 0.09]}>
+          <circleGeometry args={[0.035, 16]} />
           <meshBasicMaterial color={hc.status === 'CHARGING' ? '#10b981' : '#38bdf8'} />
         </mesh>
         {/* Charging Cable coiled to parked car */}
-        <mesh position={[0.4, -0.6, 0.6]}>
-          <cylinderGeometry args={[0.02, 0.02, 1.4, 6]} />
+        <mesh position={[0.3, -0.4, 0.4]}>
+          <cylinderGeometry args={[0.02, 0.02, 1.0, 6]} />
           <meshStandardMaterial color="#0f172a" roughness={0.9} />
         </mesh>
       </group>
@@ -70,7 +79,7 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
       <Suspense fallback={null}>
         <ParkedCarModel
           model={hc.connectedEvModel}
-          position={[2.8, 0.15, 2.2]}
+          position={[1.8, 0.05, 1.2]}
           rotation={[0, 0.2, 0]}
         />
       </Suspense>
@@ -78,13 +87,13 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
       {/* Selection Ring */}
       {isSelected && (
         <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[4.8, 5.2, 32]} />
+          <ringGeometry args={[2.8, 3.2, 32]} />
           <meshBasicMaterial color="#38bdf8" transparent opacity={0.85} />
         </mesh>
       )}
 
       {/* 3D Floating Pin Badge */}
-      <Html position={[2.8, 3.4, 2.2]} center distanceFactor={26} zIndexRange={[100, 0]}>
+      <Html position={[1.8, 2.2, 1.2]} center distanceFactor={26} zIndexRange={[100, 0]}>
         <div
           onClick={(e) => {
             e.stopPropagation();

@@ -43,6 +43,8 @@ interface DigitalTwinState {
   cameraPosition: [number, number, number];
   trackingVehicleId: string | null;
   isGridOverlayActive: boolean;
+  isPanMode: boolean;
+  activeSector: 'overview' | 'boisar' | 'tarapur' | 'dahanu' | 'palghar' | 'manor' | 'shirgaon';
 
   // UI state
   activeNav: 'overview' | 'stations' | 'vehicles' | 'grid' | 'service' | 'analytics' | 'incidents';
@@ -50,6 +52,12 @@ interface DigitalTwinState {
   isEventsOpen: boolean;
   is2dMapOpen: boolean;
   isScenarioDrawerOpen: boolean;
+
+  // Manual Driving Controls
+  isManualDrive: boolean;
+  manualDriveVehicleId: string | null;
+  manualDriveSpeed: number;
+  manualDriveGear: 'D' | 'R' | 'P';
 
   // Actions
   setSnapshot: (snapshot: any) => void;
@@ -70,6 +78,8 @@ interface DigitalTwinState {
   recenterCamera: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  togglePanMode: (active?: boolean) => void;
+  panToSector: (sector: 'overview' | 'boisar' | 'tarapur' | 'dahanu' | 'palghar' | 'manor' | 'shirgaon') => void;
   toggleTrackVehicle: (vehicleId: string) => void;
   toggleGridOverlay: (active?: boolean) => void;
   setScenarioStep: (step: number) => void;
@@ -82,6 +92,12 @@ interface DigitalTwinState {
   toggleScenarioDrawer: (open?: boolean) => void;
   setSimulationSpeed: (speed: number) => void;
   resolveRecommendationLocally: (id: string, accept: boolean) => void;
+
+  // Manual Driving Actions
+  setManualDrive: (enabled: boolean, vehicleId?: string) => void;
+  updateManualDriveSpeed: (speed: number, gear?: 'D' | 'R' | 'P') => void;
+  updateManualVehiclePose: (x: number, z: number, heading: number, speed: number, gear?: 'D' | 'R' | 'P', batteryPct?: number, estimatedRangeKm?: number) => void;
+  returnToRoad: (vehicleId?: string) => void;
 }
 
 const DEFAULT_KPIS: NetworkKPIs = {
@@ -105,9 +121,75 @@ const DEFAULT_ENERGY: EnergyMetrics = {
   history: [],
 };
 
-// Boisar 45-55 degree elevated cinematic camera default
-const CITY_CAMERA_POS: [number, number, number] = [38, 42, 48];
-const CITY_CAMERA_TARGET: [number, number, number] = [-4, 1, 4];
+// WareTrack elevated isometric regional camera default (balanced across full Palghar District)
+const CITY_CAMERA_POS: [number, number, number] = [130, 140, 150];
+const CITY_CAMERA_TARGET: [number, number, number] = [10, 2, 10];
+
+function haveStationsChanged(prev: Station[], next?: Station[]): boolean {
+  if (!next) return false;
+  if (prev.length !== next.length) return true;
+  for (let i = 0; i < prev.length; i++) {
+    const p = prev[i];
+    const n = next[i];
+    if (p.id !== n.id || p.status !== n.status || p.currentLoadKw !== n.currentLoadKw) {
+      return true;
+    }
+    const pQueueLen = p.queue ? p.queue.length : 0;
+    const nQueueLen = n.queue ? n.queue.length : 0;
+    if (pQueueLen !== nQueueLen) return true;
+    if (p.chargers?.length !== n.chargers?.length) return true;
+    for (let j = 0; j < p.chargers.length; j++) {
+      if (
+        p.chargers[j].status !== n.chargers[j].status ||
+        p.chargers[j].currentEvId !== n.chargers[j].currentEvId ||
+        p.chargers[j].currentPowerKw !== n.chargers[j].currentPowerKw
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function haveHomeChargersChanged(prev: HomeCharger[], next?: HomeCharger[]): boolean {
+  if (!next) return false;
+  if (prev.length !== next.length) return true;
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i].status !== next[i].status || prev[i].chargingPowerKw !== next[i].chargingPowerKw) return true;
+  }
+  return false;
+}
+
+function haveKpisChanged(prev: NetworkKPIs, next?: NetworkKPIs): boolean {
+  if (!next) return false;
+  return (
+    prev.activeStations !== next.activeStations ||
+    prev.vehiclesCharging !== next.vehiclesCharging ||
+    prev.waitingVehicles !== next.waitingVehicles ||
+    prev.totalDailyEnergyMwh !== next.totalDailyEnergyMwh ||
+    prev.networkLoadMw !== next.networkLoadMw
+  );
+}
+
+function hasPowerGridChanged(prev: PowerGrid | null, next?: PowerGrid | null): boolean {
+  if (!next && !prev) return false;
+  if (!next || !prev) return true;
+  return (
+    prev.loadPercentage !== next.loadPercentage ||
+    prev.currentLoadMw !== next.currentLoadMw ||
+    prev.feeders?.length !== next.feeders?.length
+  );
+}
+
+function hasServiceCenterChanged(prev: ServiceCenter | null, next?: ServiceCenter | null): boolean {
+  if (!next && !prev) return false;
+  if (!next || !prev) return true;
+  if (prev.bays?.length !== next.bays?.length) return true;
+  for (let i = 0; i < prev.bays.length; i++) {
+    if (prev.bays[i].status !== next.bays[i].status || prev.bays[i].progressPct !== next.bays[i].progressPct) return true;
+  }
+  return false;
+}
 
 export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
   stations: [],
@@ -125,17 +207,24 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
 
   selectedObject: null,
   cameraMode: 'CITY',
-  mapMode: 'REAL_MAP',
+  mapMode: '3D_TWIN',
   cameraTarget: CITY_CAMERA_TARGET,
   cameraPosition: CITY_CAMERA_POS,
   trackingVehicleId: null,
   isGridOverlayActive: false,
+  isPanMode: false,
+  activeSector: 'overview',
 
   activeNav: 'overview',
   isSimDrawerOpen: false,
   isEventsOpen: false,
   is2dMapOpen: false,
   isScenarioDrawerOpen: false,
+
+  isManualDrive: false,
+  manualDriveVehicleId: null,
+  manualDriveSpeed: 0,
+  manualDriveGear: 'P',
 
   setSnapshot: (snapshot) => {
     set({
@@ -159,28 +248,21 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
         ? [data.recommendation, ...state.recommendations.filter(r => r.id !== data.recommendation.id)]
         : state.recommendations;
 
-      let nextTarget = state.cameraTarget;
-      let nextPos = state.cameraPosition;
-
-      if (state.trackingVehicleId && data.vehicles) {
-        const tracked = (data.vehicles as Vehicle[]).find((v) => v.id === state.trackingVehicleId);
-        if (tracked) {
-          nextTarget = [tracked.position.x, 1, tracked.position.z];
-          nextPos = [tracked.position.x, 14, tracked.position.z + 18];
-        }
-      }
+      const stationsToSet = haveStationsChanged(state.stations, data.stations) ? (data.stations || state.stations) : state.stations;
+      const homeChargersToSet = haveHomeChargersChanged(state.homeChargers, data.homeChargers) ? (data.homeChargers || state.homeChargers) : state.homeChargers;
+      const kpisToSet = haveKpisChanged(state.kpis, data.kpis) ? (data.kpis || state.kpis) : state.kpis;
+      const powerGridToSet = hasPowerGridChanged(state.powerGrid, data.powerGrid) ? (data.powerGrid || state.powerGrid) : state.powerGrid;
+      const serviceCenterToSet = hasServiceCenterChanged(state.serviceCenter, data.serviceCenter) ? (data.serviceCenter || state.serviceCenter) : state.serviceCenter;
 
       return {
-        stations: data.stations || state.stations,
+        stations: stationsToSet,
         vehicles: data.vehicles || state.vehicles,
-        powerGrid: data.powerGrid || state.powerGrid,
-        serviceCenter: data.serviceCenter || state.serviceCenter,
-        homeChargers: data.homeChargers || state.homeChargers,
-        kpis: data.kpis || state.kpis,
+        powerGrid: powerGridToSet,
+        serviceCenter: serviceCenterToSet,
+        homeChargers: homeChargersToSet,
+        kpis: kpisToSet,
         energy: data.energy || state.energy,
         recommendations: updatedRecs,
-        cameraTarget: nextTarget,
-        cameraPosition: nextPos,
       };
     });
   },
@@ -353,9 +435,39 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
       selectedObject: null,
       trackingVehicleId: null,
       cameraMode: 'CITY',
+      activeSector: 'overview',
       cameraTarget: CITY_CAMERA_TARGET,
       cameraPosition: CITY_CAMERA_POS,
     });
+  },
+
+  togglePanMode: (active) => set((s) => ({ isPanMode: active ?? !s.isPanMode })),
+
+  panToSector: (sector) => {
+    set({ selectedObject: null, trackingVehicleId: null, cameraMode: 'CITY', activeSector: sector });
+    switch (sector) {
+      case 'overview':
+        set({ cameraTarget: [10, 2, 10], cameraPosition: [130, 140, 150] });
+        break;
+      case 'boisar':
+        set({ cameraTarget: [6, 1, -18], cameraPosition: [24, 28, 6] });
+        break;
+      case 'tarapur':
+        set({ cameraTarget: [-180, 1, -40], cameraPosition: [-160, 32, -14] });
+        break;
+      case 'dahanu':
+        set({ cameraTarget: [36, 1, -220], cameraPosition: [56, 36, -194] });
+        break;
+      case 'palghar':
+        set({ cameraTarget: [48, 1, 200], cameraPosition: [68, 36, 226] });
+        break;
+      case 'manor':
+        set({ cameraTarget: [210, 1, -20], cameraPosition: [230, 36, 4] });
+        break;
+      case 'shirgaon':
+        set({ cameraTarget: [-65, 1, 210], cameraPosition: [-45, 32, 236] });
+        break;
+    }
   },
 
   zoomIn: () => {
@@ -408,4 +520,96 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
       recommendations: state.recommendations.filter((r) => r.id !== id),
     }));
   },
+
+  setManualDrive: (enabled, vehicleId) => {
+    set((state) => {
+      const targetVehicleId = vehicleId || state.manualDriveVehicleId || (state.selectedObject?.type === 'vehicle' ? state.selectedObject.id : null) || state.vehicles[0]?.id || 'veh-ev-024';
+
+      const updatedVehicles = state.vehicles.map((v) => {
+        if (v.id === targetVehicleId) {
+          // If vehicle is outside Boisar road bounds or docked, align onto Boisar–Palghar Highway
+          const isOffRoad = Math.abs(v.position.z) > 55 || Math.abs(v.position.x) > 75;
+          const roadPos = isOffRoad ? { x: 26, y: 0.04, z: 42 } : { ...v.position, y: 0.04 };
+          const roadHeading = isOffRoad ? 3.3 : (v.heading || 0);
+
+          return {
+            ...v,
+            position: roadPos,
+            heading: roadHeading,
+            status: (enabled ? 'MANUAL_DRIVE' : 'EN_ROUTE') as any,
+          };
+        }
+        return v;
+      });
+
+      return {
+        isManualDrive: enabled,
+        manualDriveVehicleId: enabled ? targetVehicleId : null,
+        manualDriveSpeed: 0,
+        manualDriveGear: enabled ? 'D' : 'P',
+        mapMode: enabled ? '3D_TWIN' : state.mapMode,
+        cameraMode: enabled ? 'VEHICLE' : state.cameraMode,
+        trackingVehicleId: enabled ? targetVehicleId : state.trackingVehicleId,
+        selectedObject: enabled && targetVehicleId ? { type: 'vehicle', id: targetVehicleId } : state.selectedObject,
+        vehicles: updatedVehicles,
+      };
+    });
+  },
+
+  updateManualDriveSpeed: (speed, gear) => {
+    set((state) => ({
+      manualDriveSpeed: speed,
+      manualDriveGear: gear ?? state.manualDriveGear,
+    }));
+  },
+
+  updateManualVehiclePose: (x, z, heading, speed, gear, batteryPct, estimatedRangeKm) => {
+    set((state) => {
+      if (!state.manualDriveVehicleId) return state;
+      const updatedVehicles = state.vehicles.map((v) => {
+        if (v.id === state.manualDriveVehicleId) {
+          return {
+            ...v,
+            position: { x, y: 0.04, z },
+            heading,
+            speed,
+            currentBatteryPct: batteryPct !== undefined ? batteryPct : v.currentBatteryPct,
+            estimatedRangeKm: estimatedRangeKm !== undefined ? estimatedRangeKm : v.estimatedRangeKm,
+          };
+        }
+        return v;
+      });
+      return {
+        vehicles: updatedVehicles,
+        manualDriveSpeed: speed,
+        manualDriveGear: gear ?? state.manualDriveGear,
+      };
+    });
+  },
+
+  returnToRoad: (vehicleId) => {
+    const targetId = vehicleId || get().manualDriveVehicleId || (get().selectedObject?.type === 'vehicle' ? get().selectedObject.id : null) || get().vehicles[0]?.id || 'veh-ev-024';
+    set((state) => {
+      const updatedVehicles = state.vehicles.map((v) => {
+        if (v.id === targetId) {
+          return {
+            ...v,
+            position: { x: 26, y: 0.04, z: 42 },
+            heading: 3.3,
+            speed: state.isManualDrive ? 0 : 36,
+            status: (state.isManualDrive ? 'MANUAL_DRIVE' : 'EN_ROUTE') as any,
+          };
+        }
+        return v;
+      });
+      return {
+        vehicles: updatedVehicles,
+        manualDriveSpeed: 0,
+      };
+    });
+  },
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).__DIGITAL_TWIN_STORE__ = useDigitalTwinStore;
+}

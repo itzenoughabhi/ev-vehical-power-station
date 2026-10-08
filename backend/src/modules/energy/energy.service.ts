@@ -26,7 +26,7 @@ export class EnergyService {
     this.powerGrid = {
       substationId: 'GRID-S01',
       substationName: 'Boisar Distribution Substation',
-      position: { x: -26, y: 0, z: -38 },
+      position: { x: -48, y: 0, z: -65 },
       capacityMw: 5.0,
       currentLoadMw: 3.4,
       loadPercentage: 68,

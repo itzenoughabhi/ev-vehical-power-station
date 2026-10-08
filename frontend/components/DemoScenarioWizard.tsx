@@ -20,7 +20,6 @@ export function DemoScenarioWizard() {
   const isScenarioDrawerOpen = useDigitalTwinStore((s) => s.isScenarioDrawerOpen);
   const toggleScenarioDrawer = useDigitalTwinStore((s) => s.toggleScenarioDrawer);
   const selectVehicle = useDigitalTwinStore((s) => s.selectVehicle);
-  const vehicles = useDigitalTwinStore((s) => s.vehicles);
   const setCameraMode = useDigitalTwinStore((s) => s.setCameraMode);
 
   const [currentStep, setCurrentStep] = useState(0);

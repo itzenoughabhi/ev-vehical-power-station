@@ -10,7 +10,7 @@ export function ServiceCenter3D() {
   const selectedObject = useDigitalTwinStore((s) => s.selectedObject);
 
   const isSelected = selectedObject?.type === 'service';
-  const pos = serviceCenter?.position || { x: -14, y: 0, z: 24 };
+  const pos = serviceCenter?.position || { x: -28, y: 0, z: 54 };
   const bayOffsets = [-4.8, -1.6, 1.6, 4.8];
 
   return (
@@ -21,28 +21,28 @@ export function ServiceCenter3D() {
         selectServiceCenter();
       }}
     >
-      {/* 1. Heavy Industrial Concrete Apron Base */}
+      {/* 1. Heavy Industrial Concrete Apron Base — Crisp Pale White/Grey */}
       <mesh receiveShadow position={[0, 0.04, 0.5]}>
         <boxGeometry args={[18.4, 0.08, 14.0]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.85} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.7} />
       </mesh>
 
-      {/* 2. Main Service Building Structure — Slate & Dark Blue Engineering Facility */}
+      {/* 2. Main Service Building Structure — WareTrack Crisp White & Royal Blue Trim */}
       <group position={[0, 2.8, -3.2]}>
-        {/* Main Service Hangar */}
+        {/* Main Service Hangar Body */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[17.6, 5.6, 5.8]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.2} />
+          <meshStandardMaterial color="#ffffff" roughness={0.35} metalness={0.05} />
         </mesh>
 
-        {/* Roof Fascia & Solar Array */}
+        {/* WareTrack Royal Blue Roof Fascia Trim */}
         <mesh position={[0, 2.9, 0]} castShadow>
           <boxGeometry args={[18.0, 0.35, 6.2]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.3} />
+          <meshStandardMaterial color="#2563eb" roughness={0.3} metalness={0.2} />
         </mesh>
         <mesh position={[0, 3.1, 0]}>
           <boxGeometry args={[16.8, 0.05, 5.2]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.8} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
         </mesh>
 
         {/* Front Workshop Bay Doors (4 Repair Bays) */}
@@ -56,7 +56,7 @@ export function ServiceCenter3D() {
               <mesh castShadow>
                 <boxGeometry args={[2.7, 3.8, 0.08]} />
                 <meshStandardMaterial
-                  color={isOccupied ? '#334155' : '#f1f5f9'}
+                  color={isOccupied ? '#94a3b8' : '#f8fafc'}
                   roughness={0.4}
                 />
               </mesh>
@@ -64,10 +64,10 @@ export function ServiceCenter3D() {
               {/* Bay Number Sign */}
               <mesh position={[0, 2.2, 0.05]}>
                 <boxGeometry args={[1.2, 0.35, 0.04]} />
-                <meshStandardMaterial color="#0f172a" />
+                <meshStandardMaterial color="#2563eb" />
               </mesh>
 
-              {/* Yellow/Black Caution Threshold Strip */}
+              {/* Yellow Caution Threshold Strip */}
               <mesh position={[0, -1.85, 0.1]}>
                 <boxGeometry args={[2.8, 0.12, 0.15]} />
                 <meshStandardMaterial color="#f59e0b" roughness={0.4} />
@@ -87,30 +87,30 @@ export function ServiceCenter3D() {
       <group position={[10.5, 1.8, -2.0]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[3.2, 3.6, 6.0]} />
-          <meshStandardMaterial color="#334155" roughness={0.3} />
+          <meshStandardMaterial color="#ffffff" roughness={0.35} />
         </mesh>
         <mesh position={[0, 1.9, 0]}>
           <boxGeometry args={[3.4, 0.2, 6.2]} />
-          <meshStandardMaterial color="#f8fafc" />
+          <meshStandardMaterial color="#2563eb" />
         </mesh>
         {/* Glass Windows */}
         <mesh position={[-1.61, 0, 0]}>
           <planeGeometry args={[0.02, 1.8]} />
-          <meshStandardMaterial color="#38bdf8" roughness={0.1} metalness={0.9} />
+          <meshStandardMaterial color="#38bdf8" roughness={0.12} metalness={0.85} />
         </mesh>
       </group>
 
-      {/* 4. Service Center Canopy over repair aprons */}
+      {/* 4. Service Center Canopy over repair aprons — WareTrack Royal Blue */}
       <group position={[0, 4.6, 1.8]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[17.6, 0.25, 4.6]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.4} />
+          <meshStandardMaterial color="#2563eb" roughness={0.3} />
         </mesh>
-        {/* Steel Support Pillars */}
+        {/* Crisp White/Silver Support Pillars */}
         {[-8.2, 8.2].map((cx, cidx) => (
           <mesh key={`col-${cidx}`} position={[cx, -2.3, 1.8]} castShadow>
             <cylinderGeometry args={[0.14, 0.14, 4.6, 12]} />
-            <meshStandardMaterial color="#64748b" metalness={0.6} />
+            <meshStandardMaterial color="#f1f5f9" metalness={0.3} roughness={0.4} />
           </mesh>
         ))}
       </group>

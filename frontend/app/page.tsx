@@ -17,15 +17,16 @@ import { MapControls } from '../components/MapControls';
 import { LiveEventsDrawer } from '../components/LiveEventsDrawer';
 import { SimulationDrawer } from '../components/SimulationDrawer';
 import { TwoDMapOverlay } from '../components/TwoDMapOverlay';
+import { SwipableDistrictDock } from '../components/SwipableDistrictDock';
 
 const MapLibreBoisarMap = dynamic(
   () => import('../components/MapLibreBoisarMap').then((mod) => mod.MapLibreBoisarMap),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#0b0f19] text-slate-400">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#edf3f8] text-slate-600">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="font-mono text-xs tracking-wider text-slate-300 uppercase font-semibold">
+        <p className="font-mono text-xs tracking-wider text-slate-700 uppercase font-semibold">
           Loading OpenStreetMap Geographic Foundation...
         </p>
         <span className="text-[10px] text-slate-500 font-mono mt-1">
@@ -41,9 +42,9 @@ const DigitalTwinScene = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#0b0f19] text-slate-400">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#edf3f8] text-slate-600">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
-        <p className="font-mono text-xs tracking-wider text-slate-300 uppercase font-semibold">
+        <p className="font-mono text-xs tracking-wider text-slate-700 uppercase font-semibold">
           Loading EVNEXUS Boisar 3D Digital Twin...
         </p>
         <span className="text-[10px] text-slate-500 font-mono mt-1">
@@ -63,7 +64,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-[#0b0f19]">
+    <main className="relative w-screen h-screen overflow-hidden bg-[#edf3f8]">
       {/* Sidebar Navigation */}
       <Sidebar />
 
@@ -78,6 +79,9 @@ export default function Home() {
 
       {/* Top Header & Global KPIs Layer */}
       <TopBar />
+
+      {/* Swipable Regional Sector Navigation Dock */}
+      <SwipableDistrictDock />
 
       {/* Selection Inspector Drawers */}
       <VehiclePanel />

@@ -5,6 +5,15 @@ import { eventService } from '../events/event.service';
 import { aiService } from '../ai/ai.service';
 import { Vehicle, Station } from '../../types';
 
+export function getBayOffset(idx: number, totalChargers: number = 4): number {
+  if (totalChargers <= 4) {
+    const offsets = [-3.6, -1.2, 1.2, 3.6];
+    return offsets[idx] ?? (idx * 2.4 - (totalChargers - 1) * 1.2);
+  }
+  const offsets = [-5.2, -3.1, -1.0, 1.0, 3.1, 5.2];
+  return offsets[idx] ?? (idx * 2.1 - (totalChargers - 1) * 1.05);
+}
+
 export class SimulationEngine {
   private static instance: SimulationEngine;
   private intervalTimer: NodeJS.Timeout | null = null;
@@ -13,9 +22,9 @@ export class SimulationEngine {
   private tickCount: number = 0;
   private onTickCallbacks: ((data: any) => void)[] = [];
 
-  // High-frequency 4Hz tick for smooth fluid 60 FPS interpolation
-  public static readonly TICK_INTERVAL_MS = 250;
-  public static readonly DT = 0.25;
+  // High-frequency 10Hz tick for smooth fluid 60 FPS interpolation
+  public static readonly TICK_INTERVAL_MS = 100;
+  public static readonly DT = 0.1;
 
   // End-to-end presentation scenario tracking (Section 25)
   private scenarioStep: number = 0;
@@ -31,7 +40,7 @@ export class SimulationEngine {
 
   public start() {
     if (this.intervalTimer) return;
-    console.log('🚀 [Simulation Engine] Starting EVNEXUS Boisar Real-Time Digital Twin tick cycle (4Hz high-resolution)...');
+    console.log('🚀 [Simulation Engine] Starting EVNEXUS Boisar Real-Time Digital Twin tick cycle (10Hz high-resolution)...');
     this.intervalTimer = setInterval(() => {
       if (this.isRunning) {
         this.step();
@@ -79,14 +88,14 @@ export class SimulationEngine {
       this.processVehicleTick(vehicle, stations, sc);
     }
 
-    // 2. Update energy & grid readings (every 4 ticks = 1 second)
-    if (this.tickCount % 4 === 0) {
+    // 2. Update energy & grid readings (every 10 ticks = 1 second)
+    if (this.tickCount % 10 === 0) {
       energyService.recordTick();
     }
 
-    // 3. Evaluate AI queue optimization recommendations (every 4 ticks = 1 second)
+    // 3. Evaluate AI queue optimization recommendations (every 10 ticks = 1 second)
     let newRecommendation = null;
-    if (this.tickCount % 4 === 0) {
+    if (this.tickCount % 10 === 0) {
       newRecommendation = aiService.evaluateNetworkOptimization();
     }
 
@@ -134,6 +143,16 @@ export class SimulationEngine {
     const destinationStation = stations.find(s => s.id === vehicle.destinationStationId);
 
     switch (vehicle.status) {
+      case 'MANUAL_DRIVE': {
+        // Manually controlled by player via keyboard teleoperation - calculate realistic battery drain
+        if (vehicle.speed > 0) {
+          const drain = (vehicle.speed * 0.0006) * this.speedMultiplier * SimulationEngine.DT;
+          vehicle.currentBatteryPct = Math.max(1, Math.round((vehicle.currentBatteryPct - drain) * 10) / 10);
+          vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
+        }
+        break;
+      }
+
       case 'EN_ROUTE': {
         const waypoints = vehicle.routeWaypoints;
         if (!waypoints || waypoints.length === 0) break;
@@ -152,9 +171,45 @@ export class SimulationEngine {
         const dz = targetWp.z - vehicle.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier * SimulationEngine.DT;
+        // --- PRECISE LANE-BASED CAR-FOLLOWING & ANTI-COLLISION MODEL ---
+        let effectiveSpeed = vehicle.speed > 0 ? vehicle.speed : 40;
+        const allVehicles = vehicleService.getAllVehicles();
+        const fX = Math.sin(vehicle.heading || 0);
+        const fZ = Math.cos(vehicle.heading || 0);
 
-        if (dist <= moveStep || dist < 0.4) {
+        for (const other of allVehicles) {
+          if (other.id === vehicle.id) continue;
+          const toOtherX = other.position.x - vehicle.position.x;
+          const toOtherZ = other.position.z - vehicle.position.z;
+          const distToOther = Math.hypot(toOtherX, toOtherZ);
+
+          if (distToOther < 12.0) {
+            const longDist = fX * toOtherX + fZ * toOtherZ;
+            const latDist = Math.abs(fX * toOtherZ - fZ * toOtherX);
+
+            // Same lane corridor (< 1.6m lateral, oncoming traffic is ~3.0m lateral and will not brake)
+            if (latDist < 1.6 && longDist > 0.2) {
+              if (longDist < 4.8) {
+                // Too close to lead car's rear bumper -> hold safe gap
+                effectiveSpeed = 0;
+              } else if (longDist < 8.5) {
+                // Match or trail lead car speed
+                const leadSpeed = other.speed > 0 ? other.speed : 0;
+                effectiveSpeed = Math.min(effectiveSpeed, Math.max(0, leadSpeed * 0.85));
+              }
+            } else if (distToOther < 3.8 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
+              // Intersection or crossing conflict: yield to other vehicle to avoid clipping
+              if (vehicle.id > other.id) {
+                effectiveSpeed = 0;
+              }
+            }
+          }
+        }
+
+        // Realistic vehicular motion calibrated for 3D digital twin scale (~4.5 units/sec at 40 km/h)
+        const moveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+
+        if (dist <= moveStep || dist < 0.6) {
           vehicle.position = { ...targetWp };
           vehicle.currentWaypointIndex++;
           if (vehicle.currentWaypointIndex >= waypoints.length) {
@@ -180,6 +235,13 @@ export class SimulationEngine {
           vehicle.position.x += (dx / dist) * moveStep;
           vehicle.position.z += (dz / dist) * moveStep;
           vehicle.heading = Math.atan2(dx, dz);
+
+          // Realistic EV battery discharge while traveling on roads
+          if (effectiveSpeed > 0) {
+            const drain = (effectiveSpeed * 0.0003) * this.speedMultiplier * SimulationEngine.DT;
+            vehicle.currentBatteryPct = Math.max(8, Math.round((vehicle.currentBatteryPct - drain) * 10) / 10);
+            vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
+          }
         }
         break;
       }
@@ -187,9 +249,30 @@ export class SimulationEngine {
       case 'ARRIVING': {
         if (!destinationStation) break;
 
-        const availableCharger = destinationStation.chargers.find(c => c.status === 'AVAILABLE');
+        const allVehicles = vehicleService.getAllVehicles();
+        const totalCh = destinationStation.chargers.length;
 
-        if (availableCharger) {
+        // Find a charger that is logically AVAILABLE and NOT physically blocked by any vehicle within 2.5m
+        let selectedChargerIndex = -1;
+        const availableCharger = destinationStation.chargers.find((c, idx) => {
+          if (c.status !== 'AVAILABLE') return false;
+          const bayOffset = getBayOffset(idx, totalCh);
+          const bayPos = {
+            x: destinationStation.position.x + bayOffset,
+            z: destinationStation.position.z + 3.0,
+          };
+          const isPhysicallyBlocked = allVehicles.some(v => 
+            v.id !== vehicle.id && 
+            Math.hypot(v.position.x - bayPos.x, v.position.z - bayPos.z) < 2.5
+          );
+          if (!isPhysicallyBlocked) {
+            selectedChargerIndex = idx;
+            return true;
+          }
+          return false;
+        });
+
+        if (availableCharger && selectedChargerIndex !== -1) {
           availableCharger.status = 'CHARGING';
           availableCharger.currentPowerKw = availableCharger.powerKw === 350 ? 220 : 120;
           availableCharger.currentEvId = vehicle.code;
@@ -198,20 +281,19 @@ export class SimulationEngine {
           vehicle.currentStationId = destinationStation.id;
           vehicle.status = 'CHARGER_ASSIGNED';
           vehicle.chargingRateKw = availableCharger.currentPowerKw;
-          const chIndex = destinationStation.chargers.findIndex(c => c.id === availableCharger.id);
-          const bayOffset = chIndex !== -1 ? [-3.6, -1.2, 1.2, 3.6][chIndex] : 0;
+          const bayOffset = getBayOffset(selectedChargerIndex, totalCh);
           vehicle.position = {
             x: destinationStation.position.x + bayOffset,
             y: 0,
-            z: destinationStation.position.z + 1.2,
+            z: destinationStation.position.z + 3.0,
           };
           vehicle.heading = 0;
           vehicle.speed = 0;
-          vehicle.currentLocationName = `${destinationStation.name}, Bay #${chIndex + 1}`;
+          vehicle.currentLocationName = `${destinationStation.name}, Bay #${selectedChargerIndex + 1}`;
 
           stationService.recomputeStationMetrics(destinationStation);
         } else {
-          // Enter physical queue
+          // Enter physical queue with distinct non-overlapping positions
           if (!destinationStation.queue.includes(vehicle.id)) {
             destinationStation.queue.push(vehicle.id);
             vehicle.status = 'QUEUE';
@@ -219,7 +301,7 @@ export class SimulationEngine {
             vehicle.speed = 0;
             const qIdx = destinationStation.queue.indexOf(vehicle.id);
             vehicle.position = {
-              x: destinationStation.position.x + 3.5 + qIdx * 1.8,
+              x: destinationStation.position.x + 3.8 + qIdx * 2.8,
               y: 0,
               z: destinationStation.position.z - 4.5,
             };
@@ -241,10 +323,30 @@ export class SimulationEngine {
 
       case 'QUEUE': {
         if (!destinationStation) break;
-        // Check if a charger opened up for front of queue
+        // Check if a charger opened up for front of queue that is free physically
         if (destinationStation.queue[0] === vehicle.id) {
-          const availableCharger = destinationStation.chargers.find(c => c.status === 'AVAILABLE');
-          if (availableCharger) {
+          const allVehicles = vehicleService.getAllVehicles();
+          const totalCh = destinationStation.chargers.length;
+          let selectedChargerIndex = -1;
+          const availableCharger = destinationStation.chargers.find((c, idx) => {
+            if (c.status !== 'AVAILABLE') return false;
+            const bayOffset = getBayOffset(idx, totalCh);
+            const bayPos = {
+              x: destinationStation.position.x + bayOffset,
+              z: destinationStation.position.z + 3.0,
+            };
+            const isPhysicallyBlocked = allVehicles.some(v => 
+              v.id !== vehicle.id && 
+              Math.hypot(v.position.x - bayPos.x, v.position.z - bayPos.z) < 2.5
+            );
+            if (!isPhysicallyBlocked) {
+              selectedChargerIndex = idx;
+              return true;
+            }
+            return false;
+          });
+
+          if (availableCharger && selectedChargerIndex !== -1) {
             destinationStation.queue.shift();
             availableCharger.status = 'CHARGING';
             availableCharger.currentPowerKw = availableCharger.powerKw === 350 ? 220 : 120;
@@ -253,14 +355,13 @@ export class SimulationEngine {
             vehicle.assignedChargerId = availableCharger.id;
             vehicle.status = 'CHARGER_ASSIGNED';
             vehicle.chargingRateKw = availableCharger.currentPowerKw;
-            const chIndex = destinationStation.chargers.findIndex(c => c.id === availableCharger.id);
-            const bayOffset = chIndex !== -1 ? [-3.6, -1.2, 1.2, 3.6][chIndex] : 0;
+            const bayOffset = getBayOffset(selectedChargerIndex, totalCh);
             vehicle.position = {
               x: destinationStation.position.x + bayOffset,
               y: 0,
-              z: destinationStation.position.z + 1.2,
+              z: destinationStation.position.z + 3.0,
             };
-            vehicle.currentLocationName = `${destinationStation.name}, Bay #${chIndex + 1}`;
+            vehicle.currentLocationName = `${destinationStation.name}, Bay #${selectedChargerIndex + 1}`;
 
             stationService.recomputeStationMetrics(destinationStation);
           }
@@ -315,8 +416,9 @@ export class SimulationEngine {
       }
 
       case 'COMPLETED': {
-        if (destinationStation) {
-          vehicle.routeWaypoints = VehicleService.getDepartureRoute(destinationStation.position);
+        const st = destinationStation || stations.find(s => s.id === vehicle.currentStationId);
+        if (st) {
+          vehicle.routeWaypoints = VehicleService.getDepartureRoute(st.position, vehicle.position);
           vehicle.currentWaypointIndex = 0;
           vehicle.status = 'DEPARTING';
           vehicle.assignedChargerId = null;
@@ -338,9 +440,40 @@ export class SimulationEngine {
         const dx = targetWp.x - vehicle.position.x;
         const dz = targetWp.z - vehicle.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        const moveStep = (vehicle.speed * 0.04) * this.speedMultiplier * SimulationEngine.DT;
 
-        if (dist <= moveStep || dist < 0.4) {
+        let effectiveSpeed = vehicle.speed > 0 ? vehicle.speed : 36;
+        const allVehicles = vehicleService.getAllVehicles();
+        const fX = Math.sin(vehicle.heading || 0);
+        const fZ = Math.cos(vehicle.heading || 0);
+
+        for (const other of allVehicles) {
+          if (other.id === vehicle.id) continue;
+          const toOtherX = other.position.x - vehicle.position.x;
+          const toOtherZ = other.position.z - vehicle.position.z;
+          const distToOther = Math.hypot(toOtherX, toOtherZ);
+
+          if (distToOther < 12.0) {
+            const longDist = fX * toOtherX + fZ * toOtherZ;
+            const latDist = Math.abs(fX * toOtherZ - fZ * toOtherX);
+
+            if (latDist < 1.6 && longDist > 0.2) {
+              if (longDist < 4.8) {
+                effectiveSpeed = 0;
+              } else if (longDist < 8.5) {
+                const leadSpeed = other.speed > 0 ? other.speed : 0;
+                effectiveSpeed = Math.min(effectiveSpeed, Math.max(0, leadSpeed * 0.85));
+              }
+            } else if (distToOther < 3.8 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
+              if (vehicle.id > other.id) {
+                effectiveSpeed = 0;
+              }
+            }
+          }
+        }
+
+        const moveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+
+        if (dist <= moveStep || dist < 0.6) {
           vehicle.position = { ...targetWp };
           vehicle.currentWaypointIndex++;
           if (vehicle.currentWaypointIndex >= waypoints.length) {
@@ -517,8 +650,15 @@ export class SimulationEngine {
     return v;
   }
 
-  public returnToRoad(vehicleCode: string = 'EV-024'): Vehicle | undefined {
-    const v = vehicleService.getVehicleById(vehicleCode);
+  public returnToRoad(vehicleIdentifier: string = 'EV-024'): Vehicle | undefined {
+    let v = vehicleService.getVehicleById(vehicleIdentifier);
+    if (!v) {
+      v = vehicleService.getAllVehicles().find(
+        (veh) =>
+          veh.code.toLowerCase() === vehicleIdentifier.toLowerCase() ||
+          veh.id.toLowerCase() === vehicleIdentifier.toLowerCase()
+      );
+    }
     if (!v) return undefined;
 
     const stations = stationService.getAllStations();
@@ -531,6 +671,8 @@ export class SimulationEngine {
     v.routeWaypoints = newRoute;
     v.currentWaypointIndex = 1;
     v.position = { ...newRoute[1] };
+    const nextWp = newRoute[2] || newRoute[1];
+    v.heading = Math.atan2(nextWp.x - newRoute[1].x, nextWp.z - newRoute[1].z);
     v.speed = 42;
     v.currentLocationName = `Boisar–Palghar Road`;
     v.updatedAt = new Date().toISOString();
@@ -538,7 +680,7 @@ export class SimulationEngine {
     eventService.addEvent({
       type: 'STATUS_CHANGE',
       severity: 'INFO',
-      message: `🚗 ${v.code} exited S03 Service Center and rejoined the Boisar road network`,
+      message: `🚗 ${v.code} returned to the Boisar road network on Boisar–Palghar Highway`,
       vehicleId: v.id,
     });
 
@@ -548,6 +690,7 @@ export class SimulationEngine {
   public resetSimulation() {
     this.scenarioStep = 0;
     energyService.triggerEnergySurge(false);
+    vehicleService.reseedVehicles();
     const stations = stationService.getAllStations();
     for (const st of stations) {
       for (const ch of st.chargers) {
@@ -561,7 +704,7 @@ export class SimulationEngine {
     eventService.addEvent({
       type: 'STATUS_CHANGE',
       severity: 'INFO',
-      message: '🔄 EVNEXUS Boisar Digital Twin state reset to nominal baseline',
+      message: '🔄 EVNEXUS Boisar Digital Twin state reset to nominal baseline with vehicles on road network',
     });
   }
 }

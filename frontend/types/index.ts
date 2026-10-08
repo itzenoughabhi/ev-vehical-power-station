@@ -21,6 +21,7 @@ export type VehicleStatus =
   | 'SERVICE_REQUIRED' 
   | 'UNDER_REPAIR' 
   | 'READY' 
+  | 'MANUAL_DRIVE'
   | 'LEFT_NETWORK';
 
 export type VehicleModel = 
@@ -30,8 +31,18 @@ export type VehicleModel =
   | 'Tata Tiago EV'
   | 'Hyundai Ioniq 5'
   | 'Commercial EV Van'
+  | 'Heavy Electric Hauler'
+  | 'Electric Pickup Truck'
+  | 'Tesla Model Y'
+  | 'Porsche Taycan'
+  | 'Mercedes EQS'
+  | 'Lucid Air EV'
+  | 'Highway Patrol EV'
+  | 'Electric City Bus'
   | 'CyberSedan'
-  | 'Apex SUV';
+  | 'Apex SUV'
+  | 'BYD Atto 3'
+  | 'Kia EV6';
 
 export type CameraMode = 'CITY' | 'STATION' | 'VEHICLE' | 'GRID' | 'SERVICE';
 

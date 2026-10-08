@@ -8,6 +8,7 @@ import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
 import { CitySky } from './Environment/CitySky';
 import { RoadNetwork } from './Roads/RoadNetwork';
 import { Buildings } from './City/Buildings';
+import { CityProps } from './Environment/CityProps';
 import { ChargingStation } from './Stations/ChargingStation';
 import { VehicleFleet } from './Vehicles/VehicleFleet';
 import { IncidentMarkers } from './InteractiveMarkers/IncidentMarker';
@@ -22,7 +23,7 @@ function CameraRig() {
   const cameraTarget = useDigitalTwinStore((s) => s.cameraTarget);
   const cameraPosition = useDigitalTwinStore((s) => s.cameraPosition);
   const trackingVehicleId = useDigitalTwinStore((s) => s.trackingVehicleId);
-  const vehicles = useDigitalTwinStore((s) => s.vehicles);
+  const isPanMode = useDigitalTwinStore((s) => s.isPanMode);
 
   const targetVec = useRef(new THREE.Vector3(...cameraTarget));
   const posVec = useRef(new THREE.Vector3(...cameraPosition));
@@ -42,14 +43,33 @@ function CameraRig() {
 
     // Follow vehicle if vehicle tracking mode is active
     if (trackingVehicleId) {
+      const vehicles = useDigitalTwinStore.getState().vehicles;
       const veh = vehicles.find((v) => v.id === trackingVehicleId);
-      if (veh) {
+      if (veh && !isNaN(veh.position.x) && !isNaN(veh.position.z)) {
         controlsRef.current.target.x = THREE.MathUtils.damp(controlsRef.current.target.x, veh.position.x, 6, delta);
-        controlsRef.current.target.y = THREE.MathUtils.damp(controlsRef.current.target.y, 1.2, 6, delta);
+        controlsRef.current.target.y = THREE.MathUtils.damp(controlsRef.current.target.y, 0.8, 6, delta);
         controlsRef.current.target.z = THREE.MathUtils.damp(controlsRef.current.target.z, veh.position.z, 6, delta);
+
+        if (!isUserInteracting.current) {
+          const targetCamX = veh.position.x + 12;
+          const targetCamY = 10;
+          const targetCamZ = veh.position.z + 14;
+          camera.position.x = THREE.MathUtils.damp(camera.position.x, targetCamX, 4, delta);
+          camera.position.y = THREE.MathUtils.damp(camera.position.y, targetCamY, 4, delta);
+          camera.position.z = THREE.MathUtils.damp(camera.position.z, targetCamZ, 4, delta);
+        }
+
         controlsRef.current.update();
         return;
       }
+    }
+
+    // Safety checks against NaN
+    if (isNaN(camera.position.x) || isNaN(camera.position.y) || isNaN(camera.position.z)) {
+      camera.position.set(68, 56, 68);
+    }
+    if (isNaN(controlsRef.current.target.x) || isNaN(controlsRef.current.target.y) || isNaN(controlsRef.current.target.z)) {
+      controlsRef.current.target.set(6, 1, 8);
     }
 
     // Programmatic camera transition damping
@@ -79,14 +99,22 @@ function CameraRig() {
   return (
     <OrbitControls
       ref={controlsRef}
-      enableRotate={true}
-      enablePan={true}
-      enableZoom={true}
       enableDamping={true}
       dampingFactor={0.06}
+      panSpeed={1.8}
+      screenSpacePanning={true}
       maxPolarAngle={Math.PI / 2.15}
       minDistance={6}
-      maxDistance={160}
+      maxDistance={320}
+      touches={{
+        ONE: THREE.TOUCH.PAN,
+        TWO: THREE.TOUCH.DOLLY_ROTATE,
+      }}
+      mouseButtons={{
+        LEFT: isPanMode ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      }}
       onStart={() => {
         isUserInteracting.current = true;
         isTransitioning.current = false;
@@ -102,20 +130,34 @@ function CameraRig() {
   );
 }
 
-export function DigitalTwinScene() {
+const StationsList = React.memo(function StationsList() {
   const stations = useDigitalTwinStore((s) => s.stations);
+  return (
+    <group name="StationsGroup">
+      {stations.map((station) => (
+        <ChargingStation key={station.id} station={station} />
+      ))}
+    </group>
+  );
+});
+
+export function DigitalTwinScene() {
   const clearSelection = useDigitalTwinStore((s) => s.clearSelection);
+  const isPanMode = useDigitalTwinStore((s) => s.isPanMode);
 
   return (
-    <div className="w-full h-full relative select-none">
+    <div className={`w-full h-full relative select-none ${isPanMode ? 'cursor-grab active:cursor-grabbing' : ''}`}>
       <Canvas
         shadows
-        dpr={[1, 1.75]}
-        camera={{ position: [38, 42, 48], fov: 38 }}
+        dpr={[1, 1.35]}
+        camera={{ position: [68, 56, 68], fov: 38 }}
         gl={{
           antialias: true,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true,
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.1,
+          toneMappingExposure: 1.15,
         }}
         onPointerMissed={(e) => {
           if (e.target === e.currentTarget) {
@@ -133,6 +175,9 @@ export function DigitalTwinScene() {
         {/* Urban & Industrial Environment */}
         <Buildings />
 
+        {/* 3D City Props: Utility Poles, Street Lights, Traffic Signals, Barriers, Characters */}
+        <CityProps />
+
         {/* Power Grid Infrastructure Layer */}
         <PowerGridSystem />
 
@@ -143,11 +188,7 @@ export function DigitalTwinScene() {
         <HomeChargers3D />
 
         {/* Public EV Charging Stations */}
-        <group name="StationsGroup">
-          {stations.map((station) => (
-            <ChargingStation key={station.id} station={station} />
-          ))}
-        </group>
+        <StationsList />
 
         {/* EV Fleet */}
         <VehicleFleet />

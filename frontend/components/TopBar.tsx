@@ -30,15 +30,16 @@ export function TopBar() {
   const toggleSimDrawer = useDigitalTwinStore((s) => s.toggleSimDrawer);
   const toggleScenarioDrawer = useDigitalTwinStore((s) => s.toggleScenarioDrawer);
   const isScenarioDrawerOpen = useDigitalTwinStore((s) => s.isScenarioDrawerOpen);
-  const stations = useDigitalTwinStore((s) => s.stations);
   const selectStation = useDigitalTwinStore((s) => s.selectStation);
-  const vehicles = useDigitalTwinStore((s) => s.vehicles);
   const selectVehicle = useDigitalTwinStore((s) => s.selectVehicle);
+  const vehicleCount = useDigitalTwinStore((s) => s.vehicles.length);
   const cameraMode = useDigitalTwinStore((s) => s.cameraMode);
   const setCameraMode = useDigitalTwinStore((s) => s.setCameraMode);
   const mapMode = useDigitalTwinStore((s) => s.mapMode);
   const setMapMode = useDigitalTwinStore((s) => s.setMapMode);
   const powerGrid = useDigitalTwinStore((s) => s.powerGrid);
+  const isManualDrive = useDigitalTwinStore((s) => s.isManualDrive);
+  const setManualDrive = useDigitalTwinStore((s) => s.setManualDrive);
 
   const [search, setSearch] = useState('');
   const [time, setTime] = useState('');
@@ -56,6 +57,8 @@ export function TopBar() {
     e.preventDefault();
     const query = search.trim().toLowerCase();
     if (!query) return;
+
+    const { stations, vehicles } = useDigitalTwinStore.getState();
 
     const matchedStation = stations.find(
       (s) => s.code.toLowerCase().includes(query) || s.name.toLowerCase().includes(query)
@@ -96,7 +99,7 @@ export function TopBar() {
       <div className="flex flex-col gap-2 pointer-events-auto">
         {/* Top Control Bar */}
         <div className="flex items-center justify-between gap-3">
-          {/* Search Input */}
+          {/* Search Input — WareTrack Pill Input */}
           <form onSubmit={handleSearchSubmit} className="relative w-72 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
@@ -104,68 +107,90 @@ export function TopBar() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search Boisar sites, EVs, chargers..."
-              className="w-full bg-[#111827]/90 backdrop-blur-md border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500 shadow-md font-sans"
+              className="w-full bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm font-sans"
             />
           </form>
 
-          {/* Global Network KPIs Row */}
+          {/* Global Network KPIs Row — WareTrack Metric Badges */}
           <div className="flex items-center gap-2">
-            <div className="bg-[#111827]/90 border border-slate-800 rounded-lg px-3 py-1 text-[11px] shadow-sm">
-              <span className="text-slate-400 block text-[9px] font-mono">ACTIVE EVs</span>
-              <span className="font-bold text-white font-mono">{vehicles.length}</span>
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">ACTIVE EVs</span>
+              <span className="font-bold text-slate-900 font-mono">{vehicleCount}</span>
             </div>
 
-            <div className="bg-[#111827]/90 border border-slate-800 rounded-lg px-3 py-1 text-[11px] shadow-sm">
-              <span className="text-slate-400 block text-[9px] font-mono">CHARGING</span>
-              <span className="font-bold text-emerald-400 font-mono">{kpis.vehiclesCharging}</span>
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">CHARGING</span>
+              <span className="font-bold text-emerald-600 font-mono">{kpis.vehiclesCharging}</span>
             </div>
 
-            <div className="bg-[#111827]/90 border border-slate-800 rounded-lg px-3 py-1 text-[11px] shadow-sm">
-              <span className="text-slate-400 block text-[9px] font-mono">WAITING</span>
-              <span className="font-bold text-amber-400 font-mono">{kpis.waitingVehicles}</span>
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">WAITING</span>
+              <span className="font-bold text-amber-600 font-mono">{kpis.waitingVehicles}</span>
             </div>
 
-            <div className="bg-[#111827]/90 border border-slate-800 rounded-lg px-3 py-1 text-[11px] shadow-sm">
-              <span className="text-slate-400 block text-[9px] font-mono">AVAILABLE BAYS</span>
-              <span className="font-bold text-sky-400 font-mono">{kpis.availableChargers}</span>
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">AVAILABLE BAYS</span>
+              <span className="font-bold text-blue-600 font-mono">{kpis.availableChargers}</span>
             </div>
 
-            <div className={`border rounded-lg px-3 py-1 text-[11px] shadow-sm ${
+            <div className={`border rounded-xl px-3 py-1 text-[11px] shadow-sm backdrop-blur-md ${
               isGridOverloaded
-                ? 'bg-red-950/80 border-red-700 animate-pulse'
-                : 'bg-[#111827]/90 border-slate-800'
+                ? 'bg-red-50 border-red-300 text-red-700 animate-pulse'
+                : 'bg-white/95 border-slate-200/90'
             }`}>
-              <span className="text-slate-400 block text-[9px] font-mono">GRID LOAD</span>
-              <span className={`font-bold font-mono ${isGridOverloaded ? 'text-red-400' : 'text-slate-200'}`}>
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">GRID LOAD</span>
+              <span className={`font-bold font-mono ${isGridOverloaded ? 'text-red-600' : 'text-slate-800'}`}>
                 {kpis.networkLoadMw.toFixed(1)} MW ({powerGrid?.loadPercentage ?? 68}%)
               </span>
             </div>
 
-            <div className="bg-[#111827]/90 border border-slate-800 rounded-lg px-3 py-1 text-[11px] shadow-sm">
-              <span className="text-slate-400 block text-[9px] font-mono">IN SERVICE</span>
-              <span className="font-bold text-amber-400 font-mono">{kpis.serviceVehicles}</span>
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
+              <span className="text-slate-400 block text-[9px] font-mono font-medium">IN SERVICE</span>
+              <span className="font-bold text-indigo-600 font-mono">{kpis.serviceVehicles}</span>
+            </div>
+
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2.5 py-1 text-[11px] shadow-sm flex items-center gap-2">
+              <span className="text-amber-500">🌤️</span>
+              <div>
+                <span className="text-slate-400 block text-[9px] font-mono leading-none">BOISAR METEO</span>
+                <span className="font-bold text-slate-700 font-mono text-[10px]">32°C · 68% RH · 11kV OK</span>
+              </div>
             </div>
 
             {kpis.activeFaults > 0 && (
-              <div className="bg-red-950/80 border border-red-700 rounded-lg px-2.5 py-1 text-[11px] flex items-center gap-1.5 shadow-sm animate-pulse">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                <span className="text-red-300 font-bold font-mono">{kpis.activeFaults} FAULTS</span>
+              <div className="bg-red-50 border border-red-300 rounded-xl px-2.5 py-1 text-[11px] flex items-center gap-1.5 shadow-sm animate-pulse">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                <span className="text-red-700 font-bold font-mono">{kpis.activeFaults} FAULTS</span>
               </div>
             )}
           </div>
 
-          {/* Right Toolbar: Scenario Launcher, Sim Drawer, Events */}
+          {/* Right Toolbar: Drive EV, Scenario Launcher, Sim Drawer, Events */}
           <div className="flex items-center gap-2">
+            {/* Direct Keyboard Drive EV Action */}
+            <button
+              onClick={() => setManualDrive(!isManualDrive)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md ${
+                isManualDrive
+                  ? 'bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-400 animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+              }`}
+              title="Drive EV around Boisar using your keyboard (W/A/S/D)"
+            >
+              <span>🎮</span>
+              <span>{isManualDrive ? 'EXIT DRIVE' : 'DRIVE EV'}</span>
+            </button>
+
             {/* Presentation Scenario Launcher */}
             <button
               onClick={() => toggleScenarioDrawer()}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md ${
                 isScenarioDrawerOpen
                   ? 'bg-blue-600 text-white ring-2 ring-blue-400'
-                  : 'bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-700/60'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
               }`}
             >
-              <Play className="w-3 h-3 text-blue-300 fill-current" />
+              <Play className="w-3 h-3 text-white fill-current" />
               <span>DEMO SCENARIO</span>
             </button>
 
@@ -173,7 +198,7 @@ export function TopBar() {
             <button
               onClick={() => toggleSimDrawer()}
               title="Simulation Controls"
-              className="bg-[#111827]/90 border border-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-colors"
+              className="bg-white/95 backdrop-blur-md border border-slate-200/90 p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm"
             >
               <Sliders className="w-4 h-4" />
             </button>
@@ -182,7 +207,7 @@ export function TopBar() {
             <button
               onClick={() => toggleEvents()}
               title="Network Events Log"
-              className={`bg-[#111827]/90 border border-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-colors relative ${
+              className={`bg-white/95 backdrop-blur-md border border-slate-200/90 p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm relative ${
                 isEventsOpen ? 'ring-2 ring-blue-500' : ''
               }`}
             >
@@ -197,9 +222,9 @@ export function TopBar() {
         {/* Navigation Modes Bar */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {/* Map Modes Switcher (Section 19) */}
-            <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 rounded-lg px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
-              <span className="text-slate-500 font-bold mr-1 text-[10px]">MAP MODE:</span>
+            {/* Map Modes Switcher */}
+            <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
+              <span className="text-slate-400 font-bold mr-1 text-[10px]">MAP MODE:</span>
               {mapModes.map((mm) => {
                 const Icon = mm.icon;
                 const isActive = mapMode === mm.id;
@@ -207,12 +232,12 @@ export function TopBar() {
                   <button
                     key={mm.id}
                     onClick={() => setMapMode(mm.id)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all ${
                       isActive
                         ? mm.id === 'REAL_MAP'
                           ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400'
                           : 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-400'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -224,17 +249,17 @@ export function TopBar() {
 
             {/* Camera Modes Bar (visible in 3D modes) */}
             {mapMode !== 'REAL_MAP' && (
-              <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 rounded-lg px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
+              <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
                 <Camera className="w-3 h-3 text-slate-400" />
-                <span className="text-slate-500 font-medium mr-1 text-[10px]">CAM:</span>
+                <span className="text-slate-400 font-medium mr-1 text-[10px]">CAM:</span>
                 {cameraModes.map((cm) => (
                   <button
                     key={cm.id}
                     onClick={() => setCameraMode(cm.id)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all ${
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
                       cameraMode === cm.id
                         ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
                     {cm.label}
@@ -246,8 +271,8 @@ export function TopBar() {
 
           {/* Grid Overload Warning Marquee */}
           {isGridOverloaded && (
-            <div className="bg-red-950/90 border border-red-700/80 px-2.5 py-1 rounded-lg text-[10px] font-semibold text-red-300 flex items-center gap-1.5 animate-pulse">
-              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+            <div className="bg-red-50 border border-red-300 px-2.5 py-1 rounded-xl text-[10px] font-semibold text-red-700 flex items-center gap-1.5 shadow-sm animate-pulse">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
               <span>⚠ GRID OVERLOAD RISK (&gt;90%)</span>
             </div>
           )}
