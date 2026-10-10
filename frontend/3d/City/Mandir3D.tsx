@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -10,20 +10,10 @@ interface MandirProps {
   rotation?: [number, number, number];
 }
 
-/**
- * Authentic Indian Temple (Mandir) Architecture for Boisar.
- * Features:
- * - Raised stone plinth (Jagati) with carved entrance steps
- * - Mandapa (pillared hall) with brass ceremonial bells
- * - Curvilinear stepped sandstone Shikhara (temple spire)
- * - Golden Kalash finial with Amalaka
- * - Saffron Dhwaja (flag) with gentle flutter animation
- * - Maharashtra-style stone Deepstambh (ornate lamp tower) in the courtyard
- * - Sacred Tulsi Vrindavan & marble pradakshina walkway
- */
 export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: MandirProps) {
   const flagRef = useRef<THREE.Mesh>(null);
   const bellRef = useRef<THREE.Group>(null);
+  const [isSelected, setIsSelected] = useState(false);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -37,20 +27,32 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
   });
 
   return (
-    <group position={position} rotation={rotation} name="BoisarShriRamMandir">
-      {/* 1. Outer Temple Compound & Marble Pradakshina Courtyard */}
+    <group
+      position={position}
+      rotation={rotation}
+      name="BoisarShriRamMandir"
+      onClick={(e) => {
+        e.stopPropagation();
+        setIsSelected(!isSelected);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'auto';
+      }}
+    >
       <mesh position={[0, 0.05, 0]} receiveShadow>
         <boxGeometry args={[16.0, 0.1, 16.0]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.6} />
       </mesh>
 
-      {/* Decorative terracotta boundary curb */}
       <mesh position={[0, 0.12, 0]}>
         <boxGeometry args={[16.4, 0.08, 16.4]} />
         <meshStandardMaterial color="#c2410c" roughness={0.7} />
       </mesh>
 
-      {/* 2. Raised Jagati (Plinth) — Multi-Tiered Warm Sandstone */}
       <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
         <boxGeometry args={[10.5, 0.5, 12.0]} />
         <meshStandardMaterial color="#fed7aa" roughness={0.65} />
@@ -60,7 +62,6 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         <meshStandardMaterial color="#fdba74" roughness={0.6} />
       </mesh>
 
-      {/* Entrance Flight of Steps on Front Face (+Z) */}
       {[0, 1, 2, 3].map((step) => (
         <mesh key={`step-${step}`} position={[0, 0.12 + step * 0.15, 6.0 + step * 0.4]} receiveShadow castShadow>
           <boxGeometry args={[4.2, 0.15, 0.55]} />
@@ -68,13 +69,11 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         </mesh>
       ))}
 
-      {/* 3. Garbhagriha (Inner Sanctum) Walls */}
       <mesh position={[0, 2.5, -2.0]} castShadow receiveShadow>
         <boxGeometry args={[6.8, 3.4, 6.8]} />
         <meshStandardMaterial color="#ffedd5" roughness={0.5} />
       </mesh>
 
-      {/* Ornate Sandstone Wall Trim Bands */}
       <mesh position={[0, 4.3, -2.0]} castShadow>
         <boxGeometry args={[7.2, 0.25, 7.2]} />
         <meshStandardMaterial color="#ea580c" roughness={0.4} />
@@ -84,7 +83,6 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         <meshStandardMaterial color="#d97706" roughness={0.5} />
       </mesh>
 
-      {/* 4. Stepped Curvilinear Shikhara (Sandstone Spire) */}
       {[
         { y: 4.8, size: 6.2, h: 0.8 },
         { y: 5.6, size: 5.2, h: 0.8 },
@@ -99,13 +97,11 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         </mesh>
       ))}
 
-      {/* Amalaka (Ribbed Stone Disc below Kalash) */}
       <mesh position={[0, 9.0, -2.0]} castShadow>
         <cylinderGeometry args={[1.1, 1.3, 0.35, 16]} />
         <meshStandardMaterial color="#f59e0b" roughness={0.3} metalness={0.4} />
       </mesh>
 
-      {/* Golden Kalash (Sacred Finial Pot) */}
       <mesh position={[0, 9.45, -2.0]} castShadow>
         <sphereGeometry args={[0.55, 16, 16]} />
         <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.15} />
@@ -115,22 +111,17 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         <meshStandardMaterial color="#f59e0b" metalness={0.95} roughness={0.1} />
       </mesh>
 
-      {/* Saffron Temple Dhwaja (Flag) on Spire Peak */}
       <group position={[0, 10.2, -2.0]}>
-        {/* Flag Pole */}
         <mesh castShadow>
           <cylinderGeometry args={[0.03, 0.03, 1.4, 8]} />
           <meshStandardMaterial color="#d97706" metalness={0.8} />
         </mesh>
-        {/* Saffron Triangular Dhwaja Banner */}
         <mesh ref={flagRef} position={[0.42, 0.45, 0]}>
           <coneGeometry args={[0.38, 0.85, 3]} />
           <meshStandardMaterial color="#ea580c" roughness={0.4} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
-      {/* 5. Mandapa (Pillared Front Hall) */}
-      {/* 6 Carved Sandstone Pillars */}
       {[-2.8, 0, 2.8].map((px, pidx) => (
         <React.Fragment key={`pillar-row-${pidx}`}>
           <group position={[px, 1.8, 2.2]}>
@@ -164,13 +155,11 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         </React.Fragment>
       ))}
 
-      {/* Mandapa Pyramid Roof */}
       <mesh position={[0, 3.6, 3.3]} rotation={[0, Math.PI / 4, 0]} castShadow>
         <coneGeometry args={[4.6, 1.4, 4]} />
         <meshStandardMaterial color="#ea580c" roughness={0.5} />
       </mesh>
 
-      {/* Hanging Brass Temple Bell (Ghanti) */}
       <group ref={bellRef} position={[0, 2.8, 3.3]}>
         <mesh>
           <cylinderGeometry args={[0.02, 0.02, 0.6, 8]} />
@@ -182,7 +171,6 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         </mesh>
       </group>
 
-      {/* 6. Maharashtra-Style Deepstambh (Carved Stone Lamp Tower) */}
       <group position={[5.2, 0, 5.0]}>
         <mesh position={[0, 1.6, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[0.35, 0.6, 3.2, 8]} />
@@ -192,7 +180,6 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
           <coneGeometry args={[0.45, 0.6, 8]} />
           <meshStandardMaterial color="#f59e0b" roughness={0.3} metalness={0.5} />
         </mesh>
-        {/* Tiered Oil Lamp Brackets */}
         {[0.8, 1.5, 2.2, 2.8].map((ly, lidx) => (
           <mesh key={`lamp-ring-${lidx}`} position={[0, ly, 0]}>
             <torusGeometry args={[0.55, 0.08, 8, 16]} />
@@ -201,7 +188,6 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
         ))}
       </group>
 
-      {/* 7. Sacred Tulsi Vrindavan Planter in Courtyard */}
       <group position={[-5.0, 0, 4.5]}>
         <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
           <boxGeometry args={[1.1, 1.1, 1.1]} />
@@ -211,21 +197,39 @@ export function Mandir3D({ position = [95, 0, 12], rotation = [0, 0, 0] }: Mandi
           <coneGeometry args={[0.6, 0.35, 4]} />
           <meshStandardMaterial color="#ea580c" />
         </mesh>
-        {/* Lush Tulsi Plant Foliage */}
         <mesh position={[0, 1.55, 0]} castShadow>
           <dodecahedronGeometry args={[0.35]} />
           <meshStandardMaterial color="#15803d" roughness={0.7} />
         </mesh>
       </group>
 
-      {/* 8. 3D Floating Interactive Badge */}
-      <Html position={[0, 11.2, -2.0]} center distanceFactor={28} zIndexRange={[100, 0]}>
-        <div className="px-3 py-1.5 rounded-full border border-amber-400 bg-amber-950/90 text-amber-100 text-[11px] font-bold shadow-xl flex items-center gap-2 select-none backdrop-blur-md">
-          <span className="text-amber-400 text-sm">🕉️</span>
-          <span>Shri Ram Mandir, Boisar</span>
-          <span className="text-[10px] font-normal text-amber-300 bg-black/40 px-1.5 py-0.5 rounded">Town Temple</span>
-        </div>
-      </Html>
+      {isSelected && (
+        <Html position={[0, 11.2, -2.0]} center distanceFactor={28} zIndexRange={[100, 0]}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="px-3 py-2 rounded-2xl border border-amber-400 bg-amber-950/95 text-amber-100 shadow-2xl backdrop-blur-md min-w-[220px] select-none pointer-events-auto"
+          >
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-amber-800/60">
+              <div className="flex items-center gap-1.5 font-bold text-xs">
+                <span className="text-amber-400 text-sm">🕉️</span>
+                <span>Shri Ram Mandir, Boisar</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSelected(false);
+                }}
+                className="w-4 h-4 rounded-full bg-amber-900 text-amber-300 hover:text-white flex items-center justify-center text-[10px]"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-[10px] text-amber-200/90 font-sans">
+              Heritage Sacred Precinct · Established 1984
+            </div>
+          </div>
+        </Html>
+      )}
     </group>
   );
 }

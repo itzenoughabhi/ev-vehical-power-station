@@ -81,7 +81,6 @@ export function SwipableDistrictDock() {
   return (
     <div className="fixed top-18 left-1/2 -translate-x-1/2 z-20 select-none pointer-events-auto max-w-[92vw] md:max-w-3xl">
       <div className="bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded-2xl p-1.5 shadow-2xl flex items-center gap-1 ring-1 ring-white/10">
-        {/* Quick Pan Left Arrow */}
         <button
           onClick={() => scroll('left')}
           className="p-1 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden sm:flex items-center justify-center"
@@ -90,7 +89,6 @@ export function SwipableDistrictDock() {
           <ChevronLeft className="w-4 h-4" />
         </button>
 
-        {/* Horizontal Swipable Sector Bar with Touch Drag */}
         <div
           ref={scrollRef}
           className="flex items-center gap-1.5 overflow-x-auto scroll-smooth py-0.5 px-1 no-scrollbar snap-x touch-pan-x"
@@ -121,7 +119,6 @@ export function SwipableDistrictDock() {
           })}
         </div>
 
-        {/* Quick Pan Right Arrow */}
         <button
           onClick={() => scroll('right')}
           className="p-1 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden sm:flex items-center justify-center"
@@ -130,7 +127,6 @@ export function SwipableDistrictDock() {
           <ChevronRight className="w-4 h-4" />
         </button>
 
-        {/* Hand Pan / Swipe Mode Toggle Quick Trigger */}
         <button
           onClick={() => togglePanMode()}
           className={`ml-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 border whitespace-nowrap ${

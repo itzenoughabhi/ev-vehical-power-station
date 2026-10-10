@@ -21,15 +21,13 @@ function copySafe(srcName, destFolder, destName) {
   }
 }
 
-// 1. Stations
 copySafe('electric_car_charging_station_enbw.glb', 'stations', 'ev_station.glb');
 copySafe('electric_car_charging_station_enbw.glb', 'stations', 'electric_car_charging_station_enbw.glb');
 copySafe('Power Box.glb', 'stations', 'power_box.glb');
 
-// 2. Vehicles
 const vehicleMapping = {
   'cybertruck.glb': 'cybertruck.glb',
-  'cybertruck.glb': 'model_y.glb', // default model_y fallback
+  'cybertruck.glb': 'model_y.glb',
   'Car.glb': 'car.glb',
   'Car-unqqkULtRU.glb': 'car_sedan.glb',
   'CAR Model.glb': 'car_model.glb',
@@ -51,10 +49,8 @@ const vehicleMapping = {
 for (const [src, dest] of Object.entries(vehicleMapping)) {
   copySafe(src, 'vehicles', dest);
 }
-// Also copy cybertruck specifically
 copySafe('cybertruck.glb', 'vehicles', 'cybertruck.glb');
 
-// 3. City & Buildings
 const cityMapping = {
   'Apartment building.glb': 'apartment.glb',
   'Apartment building.glb': 'apartment_building.glb',
@@ -94,7 +90,6 @@ for (const [src, dest] of Object.entries(cityMapping)) {
   copySafe(src, 'city', dest);
 }
 
-// 4. Characters
 const charMapping = {
   'Animated Woman.glb': 'animated_woman.glb',
   'Business Man.glb': 'business_man.glb',

@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
 import { CitySky } from './Environment/CitySky';
 import { RoadNetwork } from './Roads/RoadNetwork';
+import { TrafficSignals3D } from './Roads/TrafficSignals3D';
+import { DebugOverlay3D } from './Roads/DebugOverlay3D';
 import { Buildings } from './City/Buildings';
 import { CityProps } from './Environment/CityProps';
 import { ChargingStation } from './Stations/ChargingStation';
@@ -41,7 +43,6 @@ function CameraRig() {
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
 
-    // Follow vehicle if vehicle tracking mode is active
     if (trackingVehicleId) {
       const vehicles = useDigitalTwinStore.getState().vehicles;
       const veh = vehicles.find((v) => v.id === trackingVehicleId);
@@ -64,7 +65,6 @@ function CameraRig() {
       }
     }
 
-    // Safety checks against NaN
     if (isNaN(camera.position.x) || isNaN(camera.position.y) || isNaN(camera.position.z)) {
       camera.position.set(68, 56, 68);
     }
@@ -72,7 +72,6 @@ function CameraRig() {
       controlsRef.current.target.set(6, 1, 8);
     }
 
-    // Programmatic camera transition damping
     if (isTransitioning.current && !isUserInteracting.current) {
       camera.position.x = THREE.MathUtils.damp(camera.position.x, posVec.current.x, 3.8, delta);
       camera.position.y = THREE.MathUtils.damp(camera.position.y, posVec.current.y, 3.8, delta);
@@ -149,7 +148,7 @@ export function DigitalTwinScene() {
     <div className={`w-full h-full relative select-none ${isPanMode ? 'cursor-grab active:cursor-grabbing' : ''}`}>
       <Canvas
         shadows
-        dpr={[1, 1.35]}
+        dpr={[1, 1.15]}
         camera={{ position: [68, 56, 68], fov: 38 }}
         gl={{
           antialias: true,
@@ -165,35 +164,27 @@ export function DigitalTwinScene() {
           }
         }}
       >
-        {/* Natural daylight atmosphere & terrain */}
         <CitySky />
         <CameraRig />
 
-        {/* Real Boisar Road Network */}
         <RoadNetwork />
 
-        {/* Urban & Industrial Environment */}
+        <DebugOverlay3D />
+
         <Buildings />
 
-        {/* 3D City Props: Utility Poles, Street Lights, Traffic Signals, Barriers, Characters */}
         <CityProps />
 
-        {/* Power Grid Infrastructure Layer */}
         <PowerGridSystem />
 
-        {/* EV Service & Repair Center S03 */}
         <ServiceCenter3D />
 
-        {/* Residential Home EV Chargers */}
         <HomeChargers3D />
 
-        {/* Public EV Charging Stations */}
         <StationsList />
 
-        {/* EV Fleet */}
         <VehicleFleet />
 
-        {/* Interactive Incidents */}
         <IncidentMarkers />
       </Canvas>
     </div>

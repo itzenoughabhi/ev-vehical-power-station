@@ -24,9 +24,6 @@ function PowerBoxModel({ position, rotation = [0, 0, 0] }: { position: [number, 
   );
 }
 
-/**
- * Animated subtle energy pulses flowing along utility feeder lines.
- */
 function FeederEnergyPulse({ points, color, speed = 1.0 }: { points: [number, number, number][]; color: string; speed?: number }) {
   const pulseSphereRef = useRef<THREE.Mesh>(null);
   const curve = useMemo(() => {
@@ -43,7 +40,6 @@ function FeederEnergyPulse({ points, color, speed = 1.0 }: { points: [number, nu
 
   return (
     <>
-      {/* Static thin line */}
       <Line
         points={points}
         color={color}
@@ -51,7 +47,6 @@ function FeederEnergyPulse({ points, color, speed = 1.0 }: { points: [number, nu
         transparent
         opacity={0.65}
       />
-      {/* Moving energy pulse beacon */}
       <mesh ref={pulseSphereRef}>
         <sphereGeometry args={[0.35, 12, 12]} />
         <meshBasicMaterial color={color} transparent opacity={0.9} />
@@ -63,6 +58,7 @@ function FeederEnergyPulse({ points, color, speed = 1.0 }: { points: [number, nu
 export function PowerGridSystem() {
   const powerGrid = useDigitalTwinStore((s) => s.powerGrid);
   const selectGrid = useDigitalTwinStore((s) => s.selectGrid);
+  const clearSelection = useDigitalTwinStore((s) => s.clearSelection);
   const selectedObject = useDigitalTwinStore((s) => s.selectedObject);
   const isGridOverlayActive = useDigitalTwinStore((s) => s.isGridOverlayActive);
 
@@ -71,10 +67,8 @@ export function PowerGridSystem() {
 
   const statusColor = isOverloaded ? '#ef4444' : (powerGrid?.loadPercentage ?? 68) > 75 ? '#f59e0b' : '#10b981';
 
-  // Feeder transmission line corridors from Substation GRID-S01 [-48, 0, -65]
   const feederLines = useMemo(() => {
     return [
-      // Feeder 1: Substation -> Boisar Central Hub A102 [-6, 0, -18]
       {
         id: 'fdr-a102',
         color: statusColor,
@@ -85,7 +79,6 @@ export function PowerGridSystem() {
           [-6, 4.2, -18] as [number, number, number],
         ],
       },
-      // Feeder 2: Substation -> Navapur Road Hub B104 [-48, 0, -28]
       {
         id: 'fdr-b104',
         color: statusColor,
@@ -96,7 +89,6 @@ export function PowerGridSystem() {
           [-48, 4.2, -28] as [number, number, number],
         ],
       },
-      // Feeder 3: Substation -> Tarapur MIDC Industrial Hub C201 [-48, 0, 22]
       {
         id: 'fdr-c201',
         color: statusColor,
@@ -107,7 +99,6 @@ export function PowerGridSystem() {
           [-48, 4.2, 22] as [number, number, number],
         ],
       },
-      // Feeder 4: Substation -> S03 Service Center [-28, 0, 54]
       {
         id: 'fdr-s03',
         color: statusColor,
@@ -118,7 +109,6 @@ export function PowerGridSystem() {
           [-28, 4.2, 54] as [number, number, number],
         ],
       },
-      // Feeder 5: Substation -> Betegaon & Saravali Domestic Grid
       {
         id: 'fdr-res',
         color: statusColor,
@@ -136,36 +126,37 @@ export function PowerGridSystem() {
 
   return (
     <group name="PowerGridSystem">
-      {/* 1. GRID-S01 Boisar Distribution Substation Compound */}
       <group
         position={[subPos.x, 0, subPos.z]}
         onClick={(e) => {
           e.stopPropagation();
           selectGrid();
         }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = 'pointer';
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = 'auto';
+        }}
       >
-        {/* Concrete Substation Pad */}
         <mesh position={[0, 0.08, 0]} receiveShadow>
           <boxGeometry args={[16.0, 0.16, 14.0]} />
           <meshStandardMaterial color="#64748b" roughness={0.85} />
         </mesh>
 
-        {/* High Voltage Transformer Units (Main Power Transformer bank) */}
         {[-3.5, 0, 3.5].map((tx, idx) => (
           <group key={`tx-${idx}`} position={[tx, 1.4, -2.5]}>
-            {/* Transformer Oil Tank */}
             <mesh castShadow receiveShadow>
               <boxGeometry args={[2.2, 2.6, 2.8]} />
               <meshStandardMaterial color="#475569" roughness={0.5} metalness={0.3} />
             </mesh>
-            {/* Cooling Fin Radiators */}
             {[-1.2, 1.2].map((fx, fidx) => (
               <mesh key={`fin-${fidx}`} position={[fx, 0, 0]}>
                 <boxGeometry args={[0.2, 2.2, 2.6]} />
                 <meshStandardMaterial color="#334155" roughness={0.6} metalness={0.4} />
               </mesh>
             ))}
-            {/* High Voltage Bushings / Ceramic Insulators */}
             {[-0.6, 0, 0.6].map((bx, bidx) => (
               <mesh key={`bushing-${bidx}`} position={[bx, 1.7, 0]}>
                 <cylinderGeometry args={[0.12, 0.16, 0.9, 8]} />
@@ -175,20 +166,17 @@ export function PowerGridSystem() {
           </group>
         ))}
 
-        {/* Transmission Pylons inside Substation Compound */}
         <Suspense fallback={null}>
           <PylonTowerModel position={[-5.5, 0, 4.0]} />
           <PylonTowerModel position={[5.5, 0, 4.0]} />
         </Suspense>
 
-        {/* Power Boxes / Control Panels */}
         <Suspense fallback={null}>
           <PowerBoxModel position={[-4.5, 0.1, 1.5]} rotation={[0, 0, 0]} />
           <PowerBoxModel position={[-2.5, 0.1, 1.5]} rotation={[0, 0, 0]} />
           <PowerBoxModel position={[2.5, 0.1, 1.5]} rotation={[0, Math.PI, 0]} />
         </Suspense>
 
-        {/* Substation Control Room / Switchgear Building */}
         <mesh position={[0, 1.8, 4.5]} castShadow receiveShadow>
           <boxGeometry args={[7.2, 3.4, 3.2]} />
           <meshStandardMaterial color="#e2e8f0" roughness={0.4} />
@@ -198,7 +186,6 @@ export function PowerGridSystem() {
           <meshStandardMaterial color="#1e293b" />
         </mesh>
 
-        {/* Substation Perimeter Security Fence */}
         <mesh position={[0, 0.8, -6.8]}>
           <boxGeometry args={[15.6, 1.6, 0.08]} />
           <meshStandardMaterial color="#94a3b8" wireframe={true} />
@@ -216,7 +203,6 @@ export function PowerGridSystem() {
           <meshStandardMaterial color="#94a3b8" wireframe={true} />
         </mesh>
 
-        {/* Selection Ring */}
         {isSelected && (
           <mesh position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <ringGeometry args={[9.5, 10.0, 36]} />
@@ -224,31 +210,42 @@ export function PowerGridSystem() {
           </mesh>
         )}
 
-        {/* Floating 3D Substation Badge */}
-        <Html position={[0, 7.5, 0]} center distanceFactor={28} zIndexRange={[100, 0]}>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              selectGrid();
-            }}
-            className={`cursor-pointer px-2.5 py-1 rounded-full border backdrop-blur-md transition-all select-none text-[11px] font-semibold flex items-center gap-1.5 shadow-md ${
-              isOverloaded
-                ? 'bg-red-600 text-white border-red-500 animate-pulse ring-2 ring-red-400'
-                : isSelected
-                ? 'bg-sky-600 text-white border-sky-400 ring-2 ring-sky-300'
-                : 'bg-slate-900/90 text-slate-100 border-slate-700 hover:border-sky-400'
-            }`}
-          >
-            <span>⚡</span>
-            <span>GRID-S01 Boisar Substation</span>
-            <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-black/30">
-              {powerGrid?.loadPercentage ?? 68}%
-            </span>
-          </div>
-        </Html>
+        {isSelected && (
+          <Html position={[0, 7.5, 0]} center distanceFactor={28} zIndexRange={[100, 0]}>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="select-none pointer-events-auto bg-slate-900/95 text-white border border-sky-500 rounded-2xl p-3 shadow-2xl backdrop-blur-md min-w-[220px]"
+            >
+              <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-700">
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <span>⚡</span>
+                  <span>{powerGrid?.substationName || 'GRID-S01 Distribution Substation'}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearSelection();
+                  }}
+                  className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-[10px]"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono">
+                <div className="bg-slate-800/80 p-1.5 rounded">
+                  <span className="text-slate-400 block text-[9px]">Capacity</span>
+                  <span className="text-sky-400 font-bold">{powerGrid?.capacityMw ?? 5.0} MW</span>
+                </div>
+                <div className="bg-slate-800/80 p-1.5 rounded">
+                  <span className="text-slate-400 block text-[9px]">Current Load</span>
+                  <span className="text-emerald-400 font-bold">{powerGrid?.loadPercentage ?? 68}%</span>
+                </div>
+              </div>
+            </div>
+          </Html>
+        )}
       </group>
 
-      {/* 2. Feeder Corridors & Animated Energy Flow (Substation -> Feeders -> Stations & Homes) */}
       {(isGridOverlayActive || isSelected || isOverloaded) && (
         <group name="EnergyFeeders">
           {feederLines.map((fl) => (

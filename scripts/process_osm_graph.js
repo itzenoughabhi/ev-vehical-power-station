@@ -7,29 +7,25 @@ const raw = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
 const CENTER_LAT = 19.7902325;
 const CENTER_LON = 72.7657359;
 
-// Geographic projection to local meters
-// At latitude 19.7902325:
 const METERS_PER_DEG_LAT = 110680;
 const METERS_PER_DEG_LON = 104746;
 
-// Scale down for 3D world (e.g. 1 unit = 25 meters, so 1000m = 40 units)
 const SCALE_3D = 1 / 25;
 
 function latLonToLocal3D(lat, lon) {
   const dLat = lat - CENTER_LAT;
   const dLon = lon - CENTER_LON;
   const x = dLon * METERS_PER_DEG_LON * SCALE_3D;
-  const z = -dLat * METERS_PER_DEG_LAT * SCALE_3D; // Graphics convention: North is -Z
+  const z = -dLat * METERS_PER_DEG_LAT * SCALE_3D;
   return { x: Math.round(x * 100) / 100, z: Math.round(z * 100) / 100 };
 }
 
 console.log('Processing OSM elements into road graph & GeoJSON...');
 
-const nodesMap = new Map(); // id -> { id, lat, lon, local3D, connectedNodes }
+const nodesMap = new Map();
 const segments = [];
 const geojsonFeatures = [];
 
-// Filter ways that have geometry
 const ways = raw.elements.filter(e => e.type === 'way' && Array.isArray(e.geometry) && e.geometry.length >= 2);
 
 console.log(`Found ${ways.length} usable OSM ways with geometry.`);
@@ -40,7 +36,6 @@ ways.forEach((way, idx) => {
   const geomCoords = way.geometry.map(g => [g.lon, g.lat]);
   const localPoints = way.geometry.map(g => latLonToLocal3D(g.lat, g.lon));
 
-  // Create GeoJSON feature for MapLibre
   geojsonFeatures.push({
     type: 'Feature',
     id: way.id || idx,
@@ -56,7 +51,6 @@ ways.forEach((way, idx) => {
     },
   });
 
-  // Build graph nodes and segments
   for (let i = 0; i < way.geometry.length; i++) {
     const pt = way.geometry[i];
     const nodeId = `${pt.lat.toFixed(6)},${pt.lon.toFixed(6)}`;
@@ -85,7 +79,6 @@ ways.forEach((way, idx) => {
     }
   }
 
-  // Segment record
   segments.push({
     id: `seg-${way.id || idx}`,
     osmId: way.id,
@@ -99,7 +92,6 @@ ways.forEach((way, idx) => {
 
 console.log(`Extracted ${nodesMap.size} unique road nodes and ${segments.length} road segments.`);
 
-// Save GeoJSON FeatureCollection
 const geojsonPath = path.join(__dirname, '../frontend/public/data/boisar_roads_geojson.json');
 fs.writeFileSync(geojsonPath, JSON.stringify({
   type: 'FeatureCollection',
@@ -107,7 +99,6 @@ fs.writeFileSync(geojsonPath, JSON.stringify({
 }, null, 2));
 console.log(`Saved GeoJSON to ${geojsonPath}`);
 
-// Save Road Graph
 const graphPath = path.join(__dirname, '../frontend/public/data/boisar_road_graph.json');
 fs.writeFileSync(graphPath, JSON.stringify({
   center: { lat: CENTER_LAT, lon: CENTER_LON },

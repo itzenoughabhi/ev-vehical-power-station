@@ -15,7 +15,6 @@ export function SimulationDrawer() {
   return (
     <div className="fixed top-24 right-8 z-40 w-80 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="bg-[#111827]/98 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-800 text-slate-200 font-sans text-xs">
-        {/* Header */}
         <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
           <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
             Simulation Control Panel
@@ -28,7 +27,6 @@ export function SimulationDrawer() {
           </button>
         </div>
 
-        {/* Speed Controls */}
         <div className="py-2.5 flex items-center justify-between border-b border-slate-800 text-xs">
           <span className="text-slate-400 font-medium">Clock Speed:</span>
           <div className="flex items-center gap-1 font-mono text-[11px]">
@@ -48,7 +46,6 @@ export function SimulationDrawer() {
           </div>
         </div>
 
-        {/* Action Controls List */}
         <div className="pt-2.5 space-y-1.5 text-xs">
           <button
             onClick={() => socketService.spawnVehicle()}

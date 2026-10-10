@@ -35,6 +35,7 @@ function ParkedCarModel({ model, position, rotation = [0, 0, 0] }: { model?: str
 
 function HomeChargerItem({ hc }: { hc: HomeCharger }) {
   const selectHomeCharger = useDigitalTwinStore((s) => s.selectHomeCharger);
+  const clearSelection = useDigitalTwinStore((s) => s.clearSelection);
   const selectedObject = useDigitalTwinStore((s) => s.selectedObject);
   const isSelected = selectedObject?.type === 'homeCharger' && selectedObject.id === hc.homeId;
 
@@ -45,37 +46,38 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
         e.stopPropagation();
         selectHomeCharger(hc.homeId);
       }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = 'auto';
+      }}
     >
-      {/* House with Driveway model accurately scaled */}
       <Suspense fallback={null}>
         <HouseWithDrivewayModel position={[0, 0, 0]} rotation={[0, -Math.PI / 4, 0]} />
       </Suspense>
 
-      {/* Driveway Concrete Slab */}
       <mesh position={[1.8, 0.04, 1.2]} receiveShadow>
         <boxGeometry args={[2.4, 0.08, 4.4]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
 
-      {/* Wall-mounted Home Charger Wallbox (7.2 kW AC Charger) */}
       <group position={[0.7, 1.1, 0.3]}>
         <mesh castShadow>
           <boxGeometry args={[0.24, 0.38, 0.16]} />
           <meshStandardMaterial color="#1e293b" metalness={0.4} />
         </mesh>
-        {/* LED Indicator Light */}
         <mesh position={[0, 0.06, 0.09]}>
           <circleGeometry args={[0.035, 16]} />
           <meshBasicMaterial color={hc.status === 'CHARGING' ? '#10b981' : '#38bdf8'} />
         </mesh>
-        {/* Charging Cable coiled to parked car */}
         <mesh position={[0.3, -0.4, 0.4]}>
           <cylinderGeometry args={[0.02, 0.02, 1.0, 6]} />
           <meshStandardMaterial color="#0f172a" roughness={0.9} />
         </mesh>
       </group>
 
-      {/* Parked EV in driveway charging */}
       <Suspense fallback={null}>
         <ParkedCarModel
           model={hc.connectedEvModel}
@@ -84,7 +86,6 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
         />
       </Suspense>
 
-      {/* Selection Ring */}
       {isSelected && (
         <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[2.8, 3.2, 32]} />
@@ -92,27 +93,27 @@ function HomeChargerItem({ hc }: { hc: HomeCharger }) {
         </mesh>
       )}
 
-      {/* 3D Floating Pin Badge */}
-      <Html position={[1.8, 2.2, 1.2]} center distanceFactor={26} zIndexRange={[100, 0]}>
-        <div
-          onClick={(e) => {
-            e.stopPropagation();
-            selectHomeCharger(hc.homeId);
-          }}
-          className={`cursor-pointer px-2 py-0.5 rounded-full border backdrop-blur-md transition-all select-none text-[10px] font-medium flex items-center gap-1 shadow-sm ${
-            isSelected
-              ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-300'
-              : 'bg-white/95 text-slate-800 border-slate-200 hover:border-blue-400'
-          }`}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          <span>🏠</span>
-          <span>{hc.homeId}</span>
-          <span className="text-[9px] font-mono text-emerald-600 font-semibold">
-            ⚡ {hc.batteryPct}%
-          </span>
-        </div>
-      </Html>
+      {isSelected && (
+        <Html position={[1.8, 2.2, 1.2]} center distanceFactor={26} zIndexRange={[100, 0]}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="select-none pointer-events-auto bg-slate-900/95 text-white border border-blue-500 rounded-xl px-2.5 py-1 text-[10px] font-mono shadow-xl backdrop-blur-md flex items-center gap-1.5"
+          >
+            <span>🏠</span>
+            <span className="font-bold">{hc.homeId}</span>
+            <span className="text-emerald-400 font-semibold">⚡ {hc.batteryPct}%</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                clearSelection();
+              }}
+              className="ml-1 text-slate-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </Html>
+      )}
     </group>
   );
 }

@@ -19,7 +19,6 @@ export function HomeChargerPanel() {
   return (
     <div className="fixed top-20 right-8 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="bg-[#111827]/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-800 text-slate-200 font-sans text-xs">
-        {/* Header */}
         <div className="flex items-start justify-between pb-2.5 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
@@ -42,7 +41,6 @@ export function HomeChargerPanel() {
           </button>
         </div>
 
-        {/* Battery Capacity Indicator */}
         <div className="my-2.5 p-2.5 bg-slate-900/80 border border-slate-800/80 rounded-lg">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="flex items-center gap-1.5 text-slate-400">
@@ -59,7 +57,6 @@ export function HomeChargerPanel() {
           </div>
         </div>
 
-        {/* Specs Table */}
         <div className="space-y-2 py-1 text-slate-400 text-[11px]">
           <div className="flex justify-between py-0.5 border-b border-slate-800/40">
             <span>CHARGER ID</span>

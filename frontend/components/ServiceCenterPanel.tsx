@@ -38,7 +38,6 @@ export function ServiceCenterPanel() {
   return (
     <div className="fixed top-20 right-8 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-200/90 text-slate-800 font-sans text-xs">
-        {/* Header */}
         <div className="flex items-start justify-between pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
@@ -61,7 +60,6 @@ export function ServiceCenterPanel() {
           </button>
         </div>
 
-        {/* Facility Capacity KPIs */}
         <div className="grid grid-cols-3 gap-2 my-2.5">
           <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 text-center">
             <span className="text-[10px] text-slate-400 block font-mono">REPAIR BAYS</span>
@@ -77,7 +75,6 @@ export function ServiceCenterPanel() {
           </div>
         </div>
 
-        {/* Diagnostic Status */}
         <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px]">
           <span className="flex items-center gap-1.5 text-slate-600">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -86,7 +83,6 @@ export function ServiceCenterPanel() {
           <span className="font-semibold text-emerald-600 font-mono">ONLINE / READY</span>
         </div>
 
-        {/* 4 Active Repair Bays */}
         <div className="mt-3 pt-2.5 border-t border-slate-100">
           <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-2 font-mono">
             Active Diagnostic & Repair Bays
@@ -131,7 +127,6 @@ export function ServiceCenterPanel() {
                         Problem: {bay.problem}
                       </div>
 
-                      {/* Progress bar */}
                       <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden mt-1">
                         <div
                           className="h-full rounded-full bg-amber-500 transition-all duration-300"
@@ -139,7 +134,6 @@ export function ServiceCenterPanel() {
                         />
                       </div>
 
-                      {/* Bay actions */}
                       <div className="flex gap-2 pt-1.5">
                         <button
                           onClick={() => handleFinishRepair(bay.vehicleCode || 'EV-024')}

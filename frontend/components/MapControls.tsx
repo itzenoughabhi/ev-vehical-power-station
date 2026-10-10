@@ -19,7 +19,6 @@ export function MapControls() {
 
   return (
     <div className="fixed bottom-6 right-8 z-20 flex items-center gap-2 select-none pointer-events-auto font-sans">
-      {/* Real OSM Map / 3D Digital Twin Toggle */}
       <button
         onClick={() => setMapMode(mapMode === 'REAL_MAP' ? '3D_TWIN' : 'REAL_MAP')}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
@@ -33,7 +32,6 @@ export function MapControls() {
         <span>{mapMode === 'REAL_MAP' ? '3D DIGITAL TWIN' : 'REAL OSM MAP'}</span>
       </button>
 
-      {/* Power Grid Lines Toggle */}
       <button
         onClick={() => toggleGridOverlay()}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
@@ -46,7 +44,6 @@ export function MapControls() {
         <span>ENERGY FLOW</span>
       </button>
 
-      {/* 2D Map Toggle */}
       <button
         onClick={() => toggle2dMap()}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
@@ -59,7 +56,6 @@ export function MapControls() {
         <span>TOPOLOGY</span>
       </button>
 
-      {/* Swipe / Pan Map Toggle */}
       <button
         onClick={() => togglePanMode()}
         className={`px-3 py-2 rounded-xl text-xs font-bold shadow-md border transition-all flex items-center gap-1.5 ${
@@ -73,7 +69,6 @@ export function MapControls() {
         <span>{isPanMode ? 'PANNING' : 'SWIPE MAP'}</span>
       </button>
 
-      {/* Camera Controls */}
       <div className="bg-white/95 backdrop-blur-md p-1 rounded-xl border border-slate-200/90 shadow-md flex items-center gap-1">
         <button
           onClick={zoomIn}

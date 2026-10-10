@@ -3,7 +3,6 @@ const path = require('path');
 
 function getGLBBounds(filePath) {
   const buf = fs.readFileSync(filePath);
-  // Header: magic (4), version (4), length (4)
   const jsonChunkLen = buf.readUInt32LE(12);
   const jsonChunkType = buf.toString('ascii', 16, 20);
   if (jsonChunkType !== 'JSON') return null;

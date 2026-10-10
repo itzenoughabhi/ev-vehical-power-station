@@ -18,6 +18,7 @@ import { LiveEventsDrawer } from '../components/LiveEventsDrawer';
 import { SimulationDrawer } from '../components/SimulationDrawer';
 import { TwoDMapOverlay } from '../components/TwoDMapOverlay';
 import { SwipableDistrictDock } from '../components/SwipableDistrictDock';
+import { WorldValidationModal } from '../components/WorldValidationModal';
 
 const MapLibreBoisarMap = dynamic(
   () => import('../components/MapLibreBoisarMap').then((mod) => mod.MapLibreBoisarMap),
@@ -58,6 +59,8 @@ const DigitalTwinScene = dynamic(
 export default function Home() {
   const mapMode = useDigitalTwinStore((s) => s.mapMode);
   const setMapMode = useDigitalTwinStore((s) => s.setMapMode);
+  const isAuditModalOpen = useDigitalTwinStore((s) => s.isAuditModalOpen);
+  const toggleAuditModal = useDigitalTwinStore((s) => s.toggleAuditModal);
 
   useEffect(() => {
     socketService.connect();
@@ -65,10 +68,8 @@ export default function Home() {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#edf3f8]">
-      {/* Sidebar Navigation */}
       <Sidebar />
 
-      {/* Primary Map / Digital Twin Viewport (80% Visual Focus) */}
       <div className="absolute top-0 left-56 right-0 bottom-0 z-0">
         {mapMode === 'REAL_MAP' ? (
           <MapLibreBoisarMap onSwitchTo3D={() => setMapMode('3D_TWIN')} />
@@ -77,32 +78,27 @@ export default function Home() {
         )}
       </div>
 
-      {/* Top Header & Global KPIs Layer */}
       <TopBar />
 
-      {/* Swipable Regional Sector Navigation Dock */}
       <SwipableDistrictDock />
 
-      {/* Selection Inspector Drawers */}
       <VehiclePanel />
       <StationPanel />
       <ServiceCenterPanel />
       <PowerGridPanel />
       <HomeChargerPanel />
 
-      {/* End-to-End Presentation Scenario Wizard */}
       <DemoScenarioWizard />
 
-      {/* Charging Journey Timeline at bottom-center */}
       <JourneyTimeline />
 
-      {/* Map & Camera Controls at bottom-right */}
       <MapControls />
 
-      {/* Drawers & Overlays */}
       <LiveEventsDrawer />
       <SimulationDrawer />
       <TwoDMapOverlay />
+
+      <WorldValidationModal isOpen={isAuditModalOpen} onClose={() => toggleAuditModal(false)} />
     </main>
   );
 }

@@ -38,7 +38,6 @@ export function PowerGridPanel() {
   return (
     <div className="fixed top-20 right-8 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-200/90 text-slate-800 font-sans text-xs">
-        {/* Header */}
         <div className="flex items-start justify-between pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm ${
@@ -63,7 +62,6 @@ export function PowerGridPanel() {
           </button>
         </div>
 
-        {/* Load Gauge */}
         <div className="my-2.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-slate-500 font-medium">SUBSTATION CAPACITY LOAD</span>
@@ -81,7 +79,6 @@ export function PowerGridPanel() {
           </div>
         </div>
 
-        {/* Overload Alert Banner */}
         {isOverloaded && (
           <div className="mb-2.5 p-2 rounded-xl bg-red-50 border border-red-300 text-red-800 text-[11px] flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -92,7 +89,6 @@ export function PowerGridPanel() {
           </div>
         )}
 
-        {/* Feeder Distribution Lines */}
         <div className="mt-2 pt-2 border-t border-slate-100">
           <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-2 font-mono">
             High-Voltage Distribution Feeders
@@ -117,7 +113,6 @@ export function PowerGridPanel() {
           </div>
         </div>
 
-        {/* Energy Surge Control Button */}
         <div className="mt-3 pt-2.5 border-t border-slate-100">
           <button
             onClick={handleToggleSurge}

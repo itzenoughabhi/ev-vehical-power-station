@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { 
   Station, 
   Vehicle, 
+  TrafficSignal,
   NetworkKPIs, 
   EnergyMetrics, 
   LiveEvent, 
@@ -21,9 +22,9 @@ export interface SelectedObject {
 }
 
 interface DigitalTwinState {
-  // Operational state
   stations: Station[];
   vehicles: Vehicle[];
+  trafficSignals: TrafficSignal[];
   powerGrid: PowerGrid | null;
   serviceCenter: ServiceCenter | null;
   homeChargers: HomeCharger[];
@@ -35,7 +36,6 @@ interface DigitalTwinState {
   simulationSpeed: number;
   scenarioStep: number;
 
-  // Visual / 3D navigation state
   selectedObject: SelectedObject | null;
   cameraMode: CameraMode;
   mapMode: MapMode;
@@ -46,26 +46,31 @@ interface DigitalTwinState {
   isPanMode: boolean;
   activeSector: 'overview' | 'boisar' | 'tarapur' | 'dahanu' | 'palghar' | 'manor' | 'shirgaon';
 
-  // UI state
   activeNav: 'overview' | 'stations' | 'vehicles' | 'grid' | 'service' | 'analytics' | 'incidents';
   isSimDrawerOpen: boolean;
   isEventsOpen: boolean;
   is2dMapOpen: boolean;
   isScenarioDrawerOpen: boolean;
+  isAuditModalOpen: boolean;
+  toggleAuditModal: (open?: boolean) => void;
 
-  // Manual Driving Controls
   isManualDrive: boolean;
   manualDriveVehicleId: string | null;
   manualDriveSpeed: number;
   manualDriveGear: 'D' | 'R' | 'P';
 
-  // Actions
+  isDebugMode: boolean;
+  debugGraph: boolean;
+  debugStations: boolean;
+  debugCollisions: boolean;
+  toggleDebugMode: (active?: boolean) => void;
+  toggleDebugOption: (option: 'debugGraph' | 'debugStations' | 'debugCollisions') => void;
+
   setSnapshot: (snapshot: any) => void;
   updateTick: (data: any) => void;
   addEvent: (event: LiveEvent) => void;
   setConnectionStatus: (status: boolean) => void;
 
-  // Selection & Camera Controls
   selectStation: (stationId: string) => void;
   selectVehicle: (vehicleId: string) => void;
   selectCharger: (stationId: string, chargerId: string) => void;
@@ -84,7 +89,6 @@ interface DigitalTwinState {
   toggleGridOverlay: (active?: boolean) => void;
   setScenarioStep: (step: number) => void;
 
-  // UI toggles
   setActiveNav: (nav: 'overview' | 'stations' | 'vehicles' | 'grid' | 'service' | 'analytics' | 'incidents') => void;
   toggleSimDrawer: (open?: boolean) => void;
   toggleEvents: (open?: boolean) => void;
@@ -93,10 +97,10 @@ interface DigitalTwinState {
   setSimulationSpeed: (speed: number) => void;
   resolveRecommendationLocally: (id: string, accept: boolean) => void;
 
-  // Manual Driving Actions
   setManualDrive: (enabled: boolean, vehicleId?: string) => void;
   updateManualDriveSpeed: (speed: number, gear?: 'D' | 'R' | 'P') => void;
   updateManualVehiclePose: (x: number, z: number, heading: number, speed: number, gear?: 'D' | 'R' | 'P', batteryPct?: number, estimatedRangeKm?: number) => void;
+  updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   returnToRoad: (vehicleId?: string) => void;
 }
 
@@ -121,7 +125,6 @@ const DEFAULT_ENERGY: EnergyMetrics = {
   history: [],
 };
 
-// WareTrack elevated isometric regional camera default (balanced across full Palghar District)
 const CITY_CAMERA_POS: [number, number, number] = [130, 140, 150];
 const CITY_CAMERA_TARGET: [number, number, number] = [10, 2, 10];
 
@@ -191,9 +194,27 @@ function hasServiceCenterChanged(prev: ServiceCenter | null, next?: ServiceCente
   return false;
 }
 
+function haveTrafficSignalsChanged(prev: TrafficSignal[], next?: TrafficSignal[]): boolean {
+  if (!next) return false;
+  if (prev.length !== next.length) return true;
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i].id !== next[i].id || prev[i].state !== next[i].state) return true;
+  }
+  return false;
+}
+
+function haveEnergyMetricsChanged(prev: EnergyMetrics, next?: EnergyMetrics): boolean {
+  if (!next) return false;
+  return (
+    Math.abs(prev.networkLoadKw - next.networkLoadKw) > 5 ||
+    Math.abs(prev.totalEnergyDeliveredKwh - next.totalEnergyDeliveredKwh) > 2
+  );
+}
+
 export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
   stations: [],
   vehicles: [],
+  trafficSignals: [],
   powerGrid: null,
   serviceCenter: null,
   homeChargers: [],
@@ -220,16 +241,26 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
   isEventsOpen: false,
   is2dMapOpen: false,
   isScenarioDrawerOpen: false,
+  isAuditModalOpen: false,
+  toggleAuditModal: (open) => set((s) => ({ isAuditModalOpen: open ?? !s.isAuditModalOpen })),
 
   isManualDrive: false,
   manualDriveVehicleId: null,
   manualDriveSpeed: 0,
   manualDriveGear: 'P',
 
+  isDebugMode: false,
+  debugGraph: true,
+  debugStations: true,
+  debugCollisions: true,
+  toggleDebugMode: (active) => set((s) => ({ isDebugMode: active ?? !s.isDebugMode })),
+  toggleDebugOption: (option) => set((s) => ({ [option]: !s[option] } as any)),
+
   setSnapshot: (snapshot) => {
     set({
       stations: snapshot.stations || [],
       vehicles: snapshot.vehicles || [],
+      trafficSignals: snapshot.trafficSignals || [],
       powerGrid: snapshot.powerGrid || null,
       serviceCenter: snapshot.serviceCenter || null,
       homeChargers: snapshot.homeChargers || [],
@@ -254,14 +285,18 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
       const powerGridToSet = hasPowerGridChanged(state.powerGrid, data.powerGrid) ? (data.powerGrid || state.powerGrid) : state.powerGrid;
       const serviceCenterToSet = hasServiceCenterChanged(state.serviceCenter, data.serviceCenter) ? (data.serviceCenter || state.serviceCenter) : state.serviceCenter;
 
+      const trafficSignalsToSet = haveTrafficSignalsChanged(state.trafficSignals, data.trafficSignals) ? (data.trafficSignals || state.trafficSignals) : state.trafficSignals;
+      const energyToSet = haveEnergyMetricsChanged(state.energy, data.energy) ? (data.energy || state.energy) : state.energy;
+
       return {
         stations: stationsToSet,
         vehicles: data.vehicles || state.vehicles,
+        trafficSignals: trafficSignalsToSet,
         powerGrid: powerGridToSet,
         serviceCenter: serviceCenterToSet,
         homeChargers: homeChargersToSet,
         kpis: kpisToSet,
-        energy: data.energy || state.energy,
+        energy: energyToSet,
         recommendations: updatedRecs,
       };
     });
@@ -396,7 +431,6 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
 
     switch (mode) {
       case 'REAL_MAP':
-        // Stay on OpenStreetMap
         break;
       case '3D_TWIN':
         set({ cameraMode: 'CITY' });
@@ -527,7 +561,6 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
 
       const updatedVehicles = state.vehicles.map((v) => {
         if (v.id === targetVehicleId) {
-          // If vehicle is outside Boisar road bounds or docked, align onto Boisar–Palghar Highway
           const isOffRoad = Math.abs(v.position.z) > 55 || Math.abs(v.position.x) > 75;
           const roadPos = isOffRoad ? { x: 26, y: 0.04, z: 42 } : { ...v.position, y: 0.04 };
           const roadHeading = isOffRoad ? 3.3 : (v.heading || 0);
@@ -605,6 +638,19 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
       return {
         vehicles: updatedVehicles,
         manualDriveSpeed: 0,
+      };
+    });
+  },
+
+  updateVehicle: (id, updates) => {
+    set((state) => {
+      const updatedVehicles = state.vehicles.map((v) => (v.id === id ? { ...v, ...updates } : v));
+      const updatedSelected = state.selectedObject?.type === 'vehicle' && state.selectedObject.id === id
+        ? { ...state.selectedObject, data: { ...state.selectedObject.data, ...updates } }
+        : state.selectedObject;
+      return {
+        vehicles: updatedVehicles,
+        selectedObject: updatedSelected,
       };
     });
   },

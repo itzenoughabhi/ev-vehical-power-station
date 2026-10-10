@@ -4,7 +4,6 @@ import React, { Suspense } from 'react';
 import { useGLTF, Clone } from '@react-three/drei';
 
 interface GLBModelProps {
-  /** Path relative to /public, e.g. "/models/vehicles/car.glb" */
   path: string;
   position?: [number, number, number];
   rotation?: [number, number, number];
@@ -43,14 +42,6 @@ function InnerGLBModel({
   );
 }
 
-/**
- * GLBModel - Reusable GLB 3D model component with Suspense fallback
- * 
- * Example usage:
- * ```tsx
- * <GLBModel path="/models/vehicles/my_ev.glb" position={[0, 0, 0]} scale={1.5} />
- * ```
- */
 export function GLBModel(props: GLBModelProps) {
   return (
     <Suspense fallback={null}>

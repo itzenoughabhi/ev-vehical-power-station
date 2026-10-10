@@ -1,8 +1,9 @@
 import { stationService } from '../stations/station.service';
-import { vehicleService, VehicleService } from '../vehicles/vehicle.service';
+import { vehicleService, VehicleService, REGIONAL_CORRIDORS } from '../vehicles/vehicle.service';
 import { energyService } from '../energy/energy.service';
 import { eventService } from '../events/event.service';
 import { aiService } from '../ai/ai.service';
+import { trafficController } from './traffic.controller';
 import { Vehicle, Station } from '../../types';
 
 export function getBayOffset(idx: number, totalChargers: number = 4): number {
@@ -21,15 +22,14 @@ export class SimulationEngine {
   private speedMultiplier: number = 1.0;
   private tickCount: number = 0;
   private onTickCallbacks: ((data: any) => void)[] = [];
+  private vehicleStationaryTicks: Map<string, number> = new Map();
 
-  // High-frequency 10Hz tick for smooth fluid 60 FPS interpolation
   public static readonly TICK_INTERVAL_MS = 100;
   public static readonly DT = 0.1;
 
-  // End-to-end presentation scenario tracking (Section 25)
   private scenarioStep: number = 0;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SimulationEngine {
     if (!SimulationEngine.instance) {
@@ -83,23 +83,21 @@ export class SimulationEngine {
     const vehicles = vehicleService.getAllVehicles();
     const sc = stationService.getServiceCenter();
 
-    // 1. Process vehicles through the operational state machine
+    trafficController.update(SimulationEngine.DT * this.speedMultiplier);
+
     for (const vehicle of vehicles) {
       this.processVehicleTick(vehicle, stations, sc);
     }
 
-    // 2. Update energy & grid readings (every 10 ticks = 1 second)
     if (this.tickCount % 10 === 0) {
       energyService.recordTick();
     }
 
-    // 3. Evaluate AI queue optimization recommendations (every 10 ticks = 1 second)
     let newRecommendation = null;
     if (this.tickCount % 10 === 0) {
       newRecommendation = aiService.evaluateNetworkOptimization();
     }
 
-    // 4. Update service bay progress
     for (const bay of sc.bays) {
       if (bay.status === 'OCCUPIED' && bay.progressPct !== undefined && bay.progressPct < 100) {
         bay.progressPct = Math.min(100, Math.round(bay.progressPct + 4 * this.speedMultiplier * SimulationEngine.DT));
@@ -124,9 +122,9 @@ export class SimulationEngine {
       }
     }
 
-    // 5. Notify tick listeners
     const payload = {
       tick: this.tickCount,
+      trafficSignals: trafficController.getAllSignals(),
       kpis: energyService.getKPIs(),
       energy: energyService.getEnergyMetrics(),
       powerGrid: energyService.getPowerGrid(),
@@ -143,19 +141,46 @@ export class SimulationEngine {
     const destinationStation = stations.find(s => s.id === vehicle.destinationStationId);
 
     switch (vehicle.status) {
+      case 'PAUSED': {
+        vehicle.speed = 0;
+        vehicle.trafficState = 'STOPPED';
+        break;
+      }
+
       case 'MANUAL_DRIVE': {
-        // Manually controlled by player via keyboard teleoperation - calculate realistic battery drain
         if (vehicle.speed > 0) {
-          const drain = (vehicle.speed * 0.0006) * this.speedMultiplier * SimulationEngine.DT;
-          vehicle.currentBatteryPct = Math.max(1, Math.round((vehicle.currentBatteryPct - drain) * 10) / 10);
-          vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
+          const drain = (vehicle.speed * 0.0018) * this.speedMultiplier * SimulationEngine.DT;
+          vehicle.currentBatteryPct = Math.max(1, vehicle.currentBatteryPct - drain);
+          const maxRange = vehicle.batteryCapacityKwh ? vehicle.batteryCapacityKwh * 7.0 : 380;
+          vehicle.estimatedRangeKm = Math.max(5, Math.round((vehicle.currentBatteryPct / 100) * maxRange));
         }
         break;
       }
 
       case 'EN_ROUTE': {
+        if (vehicle.speed === 0 && vehicle.trafficState === 'STOPPED') {
+          vehicle.speed = 0;
+          break;
+        }
+
         const waypoints = vehicle.routeWaypoints;
         if (!waypoints || waypoints.length === 0) break;
+
+        while (vehicle.currentWaypointIndex < waypoints.length - 1) {
+          const wp = waypoints[vehicle.currentWaypointIndex];
+          const wdx = wp.x - vehicle.position.x;
+          const wdz = wp.z - vehicle.position.z;
+          const wdist = Math.hypot(wdx, wdz);
+          const fX = Math.sin(vehicle.heading || 0);
+          const fZ = Math.cos(vehicle.heading || 0);
+          const dot = wdx * fX + wdz * fZ;
+
+          if (wdist < 2.4 || (dot < 0.2 && wdist < 5.0)) {
+            vehicle.currentWaypointIndex++;
+          } else {
+            break;
+          }
+        }
 
         const targetWp = waypoints[vehicle.currentWaypointIndex];
         if (!targetWp) {
@@ -169,10 +194,10 @@ export class SimulationEngine {
 
         const dx = targetWp.x - vehicle.position.x;
         const dz = targetWp.z - vehicle.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const dist = Math.hypot(dx, dz);
 
-        // --- PRECISE LANE-BASED CAR-FOLLOWING & ANTI-COLLISION MODEL ---
         let effectiveSpeed = vehicle.speed > 0 ? vehicle.speed : 40;
+
         const allVehicles = vehicleService.getAllVehicles();
         const fX = Math.sin(vehicle.heading || 0);
         const fZ = Math.cos(vehicle.heading || 0);
@@ -183,147 +208,271 @@ export class SimulationEngine {
           const toOtherZ = other.position.z - vehicle.position.z;
           const distToOther = Math.hypot(toOtherX, toOtherZ);
 
-          if (distToOther < 12.0) {
+          if (distToOther < 14.0) {
+            const otherFx = Math.sin(other.heading || 0);
+            const otherFz = Math.cos(other.heading || 0);
+            const headingAlignment = fX * otherFx + fZ * otherFz;
+
+            if (headingAlignment < 0.2) continue;
+
             const longDist = fX * toOtherX + fZ * toOtherZ;
             const latDist = Math.abs(fX * toOtherZ - fZ * toOtherX);
 
-            // Same lane corridor (< 1.6m lateral, oncoming traffic is ~3.0m lateral and will not brake)
-            if (latDist < 1.6 && longDist > 0.2) {
-              if (longDist < 4.8) {
-                // Too close to lead car's rear bumper -> hold safe gap
-                effectiveSpeed = 0;
-              } else if (longDist < 8.5) {
-                // Match or trail lead car speed
-                const leadSpeed = other.speed > 0 ? other.speed : 0;
-                effectiveSpeed = Math.min(effectiveSpeed, Math.max(0, leadSpeed * 0.85));
+            if (latDist < 1.8 && longDist > 0.1) {
+              if (longDist < 6.0) {
+                const followSpeed = other.speed > 0 ? other.speed * 0.85 : 18;
+                effectiveSpeed = Math.max(16, Math.min(effectiveSpeed, followSpeed));
+              } else if (longDist < 12.0) {
+                const targetFollow = other.speed > 0 ? other.speed : 28;
+                effectiveSpeed = Math.max(20, Math.min(effectiveSpeed, targetFollow));
               }
-            } else if (distToOther < 3.8 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
-              // Intersection or crossing conflict: yield to other vehicle to avoid clipping
-              if (vehicle.id > other.id) {
-                effectiveSpeed = 0;
-              }
+            } else if (distToOther < 3.2 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
+              effectiveSpeed = Math.max(18, effectiveSpeed * 0.9);
             }
           }
         }
 
-        // Realistic vehicular motion calibrated for 3D digital twin scale (~4.5 units/sec at 40 km/h)
-        const moveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
-
-        if (dist <= moveStep || dist < 0.6) {
-          vehicle.position = { ...targetWp };
-          vehicle.currentWaypointIndex++;
-          if (vehicle.currentWaypointIndex >= waypoints.length) {
-            if (vehicle.serviceCenterId) {
-              this.handleServiceCenterArrival(vehicle);
-            } else {
-              vehicle.status = 'ARRIVING';
-              vehicle.routeProgress = 1.0;
-              if (destinationStation) {
-                eventService.addEvent({
-                  type: 'ARRIVAL',
-                  severity: 'INFO',
-                  message: `📍 ${vehicle.code} arrived at Station ${destinationStation.code} (${destinationStation.name})`,
-                  vehicleId: vehicle.id,
-                  stationId: destinationStation.id,
-                });
-              }
-            }
-          } else {
-            vehicle.routeProgress = vehicle.currentWaypointIndex / waypoints.length;
+        if (effectiveSpeed === 0) {
+          const stationaryTicks = (this.vehicleStationaryTicks.get(vehicle.id) || 0) + 1;
+          this.vehicleStationaryTicks.set(vehicle.id, stationaryTicks);
+          if (stationaryTicks > 40) {
+            effectiveSpeed = 16;
           }
         } else {
-          vehicle.position.x += (dx / dist) * moveStep;
-          vehicle.position.z += (dz / dist) * moveStep;
-          vehicle.heading = Math.atan2(dx, dz);
-
-          // Realistic EV battery discharge while traveling on roads
-          if (effectiveSpeed > 0) {
-            const drain = (effectiveSpeed * 0.0003) * this.speedMultiplier * SimulationEngine.DT;
-            vehicle.currentBatteryPct = Math.max(8, Math.round((vehicle.currentBatteryPct - drain) * 10) / 10);
-            vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
-          }
+          this.vehicleStationaryTicks.set(vehicle.id, 0);
         }
+
+        const moveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+
+        if (vehicle.currentWaypointIndex >= waypoints.length - 1 && (dist <= moveStep || dist < 2.0)) {
+          vehicle.position = { ...targetWp };
+          if (vehicle.serviceCenterId) {
+            this.handleServiceCenterArrival(vehicle);
+          } else if (vehicle.destinationStationId && vehicle.currentBatteryPct < 85) {
+            this.handleStationEntranceArrival(vehicle, stations);
+          } else if (vehicle.currentBatteryPct < 22) {
+            const nearestStation = stations.reduce((acc, st) => {
+              const d = Math.hypot(st.position.x - vehicle.position.x, st.position.z - vehicle.position.z);
+              const dAcc = Math.hypot(acc.position.x - vehicle.position.x, acc.position.z - vehicle.position.z);
+              return d < dAcc ? st : acc;
+            }, stations[0]);
+            const stationRoute = VehicleService.getRouteForStation(nearestStation.code, vehicle.position);
+            vehicle.destinationStationId = nearestStation.id;
+            vehicle.routeWaypoints = stationRoute;
+            vehicle.currentWaypointIndex = 0;
+            vehicle.routeProgress = 0.05;
+            vehicle.currentLocationName = `Approaching ${nearestStation.name} [${nearestStation.code}] for recharge`;
+          } else {
+            const corridorId = (vehicle as any)._corridorId;
+            if (corridorId && REGIONAL_CORRIDORS[corridorId]) {
+              const corridor = REGIONAL_CORRIDORS[corridorId];
+              const newRoute = VehicleService.getCorridorRoute(corridorId);
+              vehicle.routeWaypoints = newRoute.length > 2 ? newRoute : VehicleService.getRandomRoute(vehicle.position, vehicle.heading);
+              vehicle.currentWaypointIndex = 0;
+              vehicle.routeProgress = 0.0;
+              vehicle.currentLocationName = `Patrolling ${corridor.name}`;
+            } else {
+              vehicle.destinationStationId = null;
+              const newRoute = VehicleService.getRandomRoute(vehicle.position, vehicle.heading);
+              if (newRoute && newRoute.length > 2) {
+                vehicle.routeWaypoints = newRoute;
+                vehicle.currentWaypointIndex = 0;
+                vehicle.routeProgress = 0.05;
+                vehicle.speed = Math.floor(36 + Math.random() * 10);
+                vehicle.currentLocationName = `Patrolling City Route`;
+              } else {
+                vehicle.currentWaypointIndex = 0;
+                vehicle.routeProgress = 0.0;
+              }
+            }
+          }
+        } else {
+          const targetHeading = Math.atan2(dx, dz);
+          let headingDiff = targetHeading - (vehicle.heading || 0);
+          headingDiff = ((headingDiff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+          const isHeavy = vehicle.model === 'Heavy Electric Hauler' || vehicle.model === 'Electric City Bus';
+          const maxTurnRate = isHeavy ? 2.8 : 4.0;
+          const maxTurn = maxTurnRate * SimulationEngine.DT * this.speedMultiplier;
+          const clampedTurn = Math.max(-maxTurn, Math.min(maxTurn, headingDiff));
+          vehicle.heading = (vehicle.heading || 0) + clampedTurn;
+          vehicle.heading = ((vehicle.heading + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+          if (Math.abs(headingDiff) > 0.4) {
+            const turnFactor = Math.min(1.0, (Math.abs(headingDiff) - 0.4) / 1.2);
+            effectiveSpeed = Math.max(18, effectiveSpeed * (1 - turnFactor * 0.35));
+          }
+
+          const actualMoveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+          const forwardStep = Math.min(dist, actualMoveStep);
+          vehicle.position.x += Math.sin(vehicle.heading) * forwardStep;
+          vehicle.position.z += Math.cos(vehicle.heading) * forwardStep;
+          vehicle.routeProgress = waypoints.length > 1 ? vehicle.currentWaypointIndex / waypoints.length : 0;
+        }
+
+        if (effectiveSpeed > 0) {
+          const drain = (effectiveSpeed * 0.0022) * this.speedMultiplier * SimulationEngine.DT;
+          vehicle.currentBatteryPct = Math.max(5, vehicle.currentBatteryPct - drain);
+          const maxRange = vehicle.batteryCapacityKwh ? vehicle.batteryCapacityKwh * 5.0 : 380;
+          vehicle.estimatedRangeKm = Math.max(8, Math.round((vehicle.currentBatteryPct / 100) * maxRange));
+          vehicle.tripDistanceKm += (moveStep * 0.001);
+        }
+        vehicle.speed = effectiveSpeed;
         break;
       }
 
-      case 'ARRIVING': {
-        if (!destinationStation) break;
+      case 'ENTERING_STATION': {
+        if (!destinationStation) {
+          vehicle.status = 'EN_ROUTE';
+          break;
+        }
 
-        const allVehicles = vehicleService.getAllVehicles();
         const totalCh = destinationStation.chargers.length;
-
-        // Find a charger that is logically AVAILABLE and NOT physically blocked by any vehicle within 2.5m
         let selectedChargerIndex = -1;
-        const availableCharger = destinationStation.chargers.find((c, idx) => {
-          if (c.status !== 'AVAILABLE') return false;
-          const bayOffset = getBayOffset(idx, totalCh);
-          const bayPos = {
-            x: destinationStation.position.x + bayOffset,
-            z: destinationStation.position.z + 3.0,
-          };
-          const isPhysicallyBlocked = allVehicles.some(v => 
-            v.id !== vehicle.id && 
-            Math.hypot(v.position.x - bayPos.x, v.position.z - bayPos.z) < 2.5
-          );
-          if (!isPhysicallyBlocked) {
-            selectedChargerIndex = idx;
-            return true;
-          }
-          return false;
-        });
 
-        if (availableCharger && selectedChargerIndex !== -1) {
-          availableCharger.status = 'CHARGING';
-          availableCharger.currentPowerKw = availableCharger.powerKw === 350 ? 220 : 120;
-          availableCharger.currentEvId = vehicle.code;
-
-          vehicle.assignedChargerId = availableCharger.id;
-          vehicle.currentStationId = destinationStation.id;
-          vehicle.status = 'CHARGER_ASSIGNED';
-          vehicle.chargingRateKw = availableCharger.currentPowerKw;
-          const bayOffset = getBayOffset(selectedChargerIndex, totalCh);
-          vehicle.position = {
-            x: destinationStation.position.x + bayOffset,
-            y: 0,
-            z: destinationStation.position.z + 3.0,
-          };
-          vehicle.heading = 0;
-          vehicle.speed = 0;
-          vehicle.currentLocationName = `${destinationStation.name}, Bay #${selectedChargerIndex + 1}`;
-
-          stationService.recomputeStationMetrics(destinationStation);
+        if (vehicle.assignedChargerId) {
+          selectedChargerIndex = destinationStation.chargers.findIndex(c => c.id === vehicle.assignedChargerId);
         } else {
-          // Enter physical queue with distinct non-overlapping positions
+          const allVehicles = vehicleService.getAllVehicles();
+          const availableCharger = destinationStation.chargers.find((c, idx) => {
+            if (c.status !== 'AVAILABLE') return false;
+            const bayOffset = getBayOffset(idx, totalCh);
+            const bayPos = {
+              x: destinationStation.position.x + bayOffset,
+              z: destinationStation.position.z + 3.0,
+            };
+            const isPhysicallyBlocked = allVehicles.some(v =>
+              v.id !== vehicle.id &&
+              Math.hypot(v.position.x - bayPos.x, v.position.z - bayPos.z) < 2.5
+            );
+            if (!isPhysicallyBlocked) {
+              selectedChargerIndex = idx;
+              return true;
+            }
+            return false;
+          });
+
+          if (availableCharger && selectedChargerIndex !== -1) {
+            vehicle.assignedChargerId = availableCharger.id;
+            vehicle.currentStationId = destinationStation.id;
+          }
+        }
+
+        if (selectedChargerIndex === -1) {
           if (!destinationStation.queue.includes(vehicle.id)) {
             destinationStation.queue.push(vehicle.id);
             vehicle.status = 'QUEUE';
+            vehicle.trafficState = 'QUEUING';
             vehicle.currentStationId = destinationStation.id;
             vehicle.speed = 0;
             const qIdx = destinationStation.queue.indexOf(vehicle.id);
             vehicle.position = {
-              x: destinationStation.position.x + 3.8 + qIdx * 2.8,
+              x: destinationStation.position.x + 5.5 + qIdx * 2.8,
               y: 0,
-              z: destinationStation.position.z - 4.5,
+              z: destinationStation.position.z + 9.5,
             };
             vehicle.currentLocationName = `${destinationStation.name}, Queue Position #${qIdx + 1}`;
-
             eventService.addEvent({
               type: 'STATUS_CHANGE',
               severity: 'WARNING',
-              message: `⏳ ${vehicle.code} queued at Station ${destinationStation.code} (Position #${qIdx + 1})`,
+              message: `⏳ ${vehicle.code} queued outside bays at Station ${destinationStation.code} (Position #${qIdx + 1})`,
               vehicleId: vehicle.id,
               stationId: destinationStation.id,
             });
-
             stationService.recomputeStationMetrics(destinationStation);
           }
+          break;
+        }
+
+        const bayOffset = getBayOffset(selectedChargerIndex, totalCh);
+        const apronStagingPos = {
+          x: destinationStation.position.x + bayOffset,
+          y: 0,
+          z: destinationStation.position.z + 6.8,
+        };
+
+        const dx = apronStagingPos.x - vehicle.position.x;
+        const dz = apronStagingPos.z - vehicle.position.z;
+        const dist = Math.hypot(dx, dz);
+        const apronSpeed = 14;
+        const moveStep = (apronSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+
+        if (dist <= moveStep || dist < 0.5) {
+          vehicle.position = { ...apronStagingPos };
+          vehicle.heading = 0;
+          vehicle.speed = 6;
+          vehicle.status = 'REVERSE_PARKING';
+          vehicle.trafficState = 'REVERSE_PARKING';
+          vehicle.currentLocationName = `${destinationStation.name}, Reversing into Bay #${selectedChargerIndex + 1}`;
+          eventService.addEvent({
+            type: 'STATUS_CHANGE',
+            severity: 'INFO',
+            message: `🅿️ ${vehicle.code} taking turn and commencing reverse-parking into Bay #${selectedChargerIndex + 1}`,
+            vehicleId: vehicle.id,
+            stationId: destinationStation.id,
+          });
+        } else {
+          vehicle.position.x += (dx / dist) * moveStep;
+          vehicle.position.z += (dz / dist) * moveStep;
+          vehicle.heading = Math.atan2(dx, dz);
+          vehicle.speed = apronSpeed;
+          vehicle.trafficState = 'ENTERING_STATION';
+        }
+        break;
+      }
+
+      case 'REVERSE_PARKING': {
+        if (!destinationStation || !vehicle.assignedChargerId) {
+          vehicle.status = 'EN_ROUTE';
+          break;
+        }
+
+        const totalCh = destinationStation.chargers.length;
+        const selectedChargerIndex = destinationStation.chargers.findIndex(c => c.id === vehicle.assignedChargerId);
+        const bayOffset = getBayOffset(selectedChargerIndex >= 0 ? selectedChargerIndex : 0, totalCh);
+        const targetBayZ = destinationStation.position.z + 3.0;
+        const targetBayX = destinationStation.position.x + bayOffset;
+
+        const revSpeed = 6;
+        const revStep = (revSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+
+        vehicle.position.z = Math.max(targetBayZ, vehicle.position.z - revStep);
+        vehicle.position.x += (targetBayX - vehicle.position.x) * (1 - Math.exp(-8 * SimulationEngine.DT));
+        vehicle.heading = 0;
+        vehicle.speed = revSpeed;
+
+        if (vehicle.position.z <= targetBayZ + 0.1) {
+          vehicle.position.x = targetBayX;
+          vehicle.position.z = targetBayZ;
+          vehicle.speed = 0;
+          vehicle.status = 'CHARGING';
+          vehicle.trafficState = 'CHARGING';
+
+          const ch = destinationStation.chargers.find(c => c.id === vehicle.assignedChargerId);
+          if (ch) {
+            ch.status = 'CHARGING';
+            ch.currentPowerKw = ch.powerKw === 350 ? 220 : 120;
+            ch.currentEvId = vehicle.code;
+            vehicle.chargingRateKw = ch.currentPowerKw;
+          }
+
+          vehicle.currentLocationName = `${destinationStation.name}, Bay #${selectedChargerIndex + 1}`;
+          eventService.addEvent({
+            type: 'CHARGING_START',
+            severity: 'INFO',
+            message: `⚡ ${vehicle.code} (${vehicle.model}) parked in Bay #${selectedChargerIndex + 1} — DC Fast Charging cable connected (${vehicle.chargingRateKw} kW)`,
+            vehicleId: vehicle.id,
+            stationId: destinationStation.id,
+            chargerId: ch?.id,
+          });
+
+          stationService.recomputeStationMetrics(destinationStation);
         }
         break;
       }
 
       case 'QUEUE': {
         if (!destinationStation) break;
-        // Check if a charger opened up for front of queue that is free physically
         if (destinationStation.queue[0] === vehicle.id) {
           const allVehicles = vehicleService.getAllVehicles();
           const totalCh = destinationStation.chargers.length;
@@ -335,8 +484,8 @@ export class SimulationEngine {
               x: destinationStation.position.x + bayOffset,
               z: destinationStation.position.z + 3.0,
             };
-            const isPhysicallyBlocked = allVehicles.some(v => 
-              v.id !== vehicle.id && 
+            const isPhysicallyBlocked = allVehicles.some(v =>
+              v.id !== vehicle.id &&
               Math.hypot(v.position.x - bayPos.x, v.position.z - bayPos.z) < 2.5
             );
             if (!isPhysicallyBlocked) {
@@ -348,47 +497,32 @@ export class SimulationEngine {
 
           if (availableCharger && selectedChargerIndex !== -1) {
             destinationStation.queue.shift();
-            availableCharger.status = 'CHARGING';
-            availableCharger.currentPowerKw = availableCharger.powerKw === 350 ? 220 : 120;
-            availableCharger.currentEvId = vehicle.code;
-
             vehicle.assignedChargerId = availableCharger.id;
-            vehicle.status = 'CHARGER_ASSIGNED';
-            vehicle.chargingRateKw = availableCharger.currentPowerKw;
-            const bayOffset = getBayOffset(selectedChargerIndex, totalCh);
-            vehicle.position = {
-              x: destinationStation.position.x + bayOffset,
-              y: 0,
-              z: destinationStation.position.z + 3.0,
-            };
-            vehicle.currentLocationName = `${destinationStation.name}, Bay #${selectedChargerIndex + 1}`;
-
+            vehicle.currentStationId = destinationStation.id;
+            vehicle.status = 'ENTERING_STATION';
+            vehicle.trafficState = 'ENTERING_STATION';
+            vehicle.speed = 12;
+            eventService.addEvent({
+              type: 'STATUS_CHANGE',
+              severity: 'INFO',
+              message: `🚗 ${vehicle.code} called from queue into Bay #${selectedChargerIndex + 1}`,
+              vehicleId: vehicle.id,
+              stationId: destinationStation.id,
+            });
             stationService.recomputeStationMetrics(destinationStation);
           }
         }
         break;
       }
 
-      case 'CHARGER_ASSIGNED': {
-        vehicle.status = 'CHARGING';
-        const st = stations.find(s => s.id === vehicle.currentStationId);
-        const ch = st?.chargers.find(c => c.id === vehicle.assignedChargerId);
-        eventService.addEvent({
-          type: 'CHARGING_START',
-          severity: 'INFO',
-          message: `⚡ ${vehicle.code} started DC Fast Charging at Charger ${ch?.code || 'Bay'} (${ch?.currentPowerKw} kW)`,
-          vehicleId: vehicle.id,
-          stationId: st?.id,
-          chargerId: ch?.id,
-        });
-        break;
-      }
-
       case 'CHARGING': {
-        const chargeInc = (1.2 * this.speedMultiplier) * SimulationEngine.DT;
-        vehicle.currentBatteryPct = Math.min(100, Math.round((vehicle.currentBatteryPct + chargeInc) * 10) / 10);
-        vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
-        vehicle.energyConsumedKwh += Math.round(0.4 * this.speedMultiplier * SimulationEngine.DT * 10) / 10;
+        const chargeInc = (1.5 * this.speedMultiplier) * SimulationEngine.DT;
+        vehicle.currentBatteryPct = Math.min(100, vehicle.currentBatteryPct + chargeInc);
+        const maxRange = vehicle.batteryCapacityKwh ? vehicle.batteryCapacityKwh * 5.0 : 380;
+        vehicle.estimatedRangeKm = Math.min(maxRange, Math.round((vehicle.currentBatteryPct / 100) * maxRange));
+        vehicle.energyConsumedKwh += 0.4 * this.speedMultiplier * SimulationEngine.DT;
+        vehicle.speed = 0;
+        vehicle.trafficState = 'CHARGING';
 
         if (vehicle.currentBatteryPct >= vehicle.targetBatteryPct) {
           vehicle.status = 'COMPLETED';
@@ -407,7 +541,7 @@ export class SimulationEngine {
           eventService.addEvent({
             type: 'COMPLETED',
             severity: 'SUCCESS',
-            message: `🎉 ${vehicle.code} (${vehicle.model}) completed charge at ${vehicle.currentBatteryPct}%`,
+            message: `🎉 ${vehicle.code} (${vehicle.model}) completed charge at ${vehicle.currentBatteryPct}% — disconnecting cable`,
             vehicleId: vehicle.id,
             stationId: destinationStation?.id,
           });
@@ -418,20 +552,70 @@ export class SimulationEngine {
       case 'COMPLETED': {
         const st = destinationStation || stations.find(s => s.id === vehicle.currentStationId);
         if (st) {
+          vehicle.status = 'LEAVING_STATION';
+          vehicle.trafficState = 'LEAVING_STATION';
+          vehicle.speed = 12;
+          vehicle.heading = 0;
+          vehicle.assignedChargerId = null;
+        }
+        break;
+      }
+
+      case 'LEAVING_STATION': {
+        const st = destinationStation || stations.find(s => s.id === vehicle.currentStationId);
+        if (!st) {
+          vehicle.status = 'EN_ROUTE';
+          break;
+        }
+
+        const targetApronZ = st.position.z + 6.8;
+        const forwardStep = (12 / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+        vehicle.position.z = Math.min(targetApronZ, vehicle.position.z + forwardStep);
+        vehicle.heading = 0;
+        vehicle.speed = 12;
+
+        if (vehicle.position.z >= targetApronZ - 0.1) {
           vehicle.routeWaypoints = VehicleService.getDepartureRoute(st.position, vehicle.position);
           vehicle.currentWaypointIndex = 0;
           vehicle.status = 'DEPARTING';
-          vehicle.assignedChargerId = null;
+          vehicle.trafficState = 'CRUISING';
           vehicle.currentStationId = null;
+          vehicle.destinationStationId = null;
           vehicle.speed = 36;
+          eventService.addEvent({
+            type: 'STATUS_CHANGE',
+            severity: 'INFO',
+            message: `🚗 ${vehicle.code} exited station and merged onto public highway`,
+            vehicleId: vehicle.id,
+          });
         }
         break;
       }
 
       case 'DEPARTING': {
         const waypoints = vehicle.routeWaypoints;
-        const targetWp = waypoints[vehicle.currentWaypointIndex];
+        if (!waypoints || waypoints.length === 0) {
+          vehicle.status = 'LEFT_NETWORK';
+          break;
+        }
 
+        while (vehicle.currentWaypointIndex < waypoints.length - 1) {
+          const wp = waypoints[vehicle.currentWaypointIndex];
+          const wdx = wp.x - vehicle.position.x;
+          const wdz = wp.z - vehicle.position.z;
+          const wdist = Math.hypot(wdx, wdz);
+          const fX = Math.sin(vehicle.heading || 0);
+          const fZ = Math.cos(vehicle.heading || 0);
+          const dot = wdx * fX + wdz * fZ;
+
+          if (wdist < 2.4 || (dot < 0.2 && wdist < 5.0)) {
+            vehicle.currentWaypointIndex++;
+          } else {
+            break;
+          }
+        }
+
+        const targetWp = waypoints[vehicle.currentWaypointIndex];
         if (!targetWp) {
           vehicle.status = 'LEFT_NETWORK';
           break;
@@ -439,9 +623,10 @@ export class SimulationEngine {
 
         const dx = targetWp.x - vehicle.position.x;
         const dz = targetWp.z - vehicle.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
+        const dist = Math.hypot(dx, dz);
 
         let effectiveSpeed = vehicle.speed > 0 ? vehicle.speed : 36;
+
         const allVehicles = vehicleService.getAllVehicles();
         const fX = Math.sin(vehicle.heading || 0);
         const fZ = Math.cos(vehicle.heading || 0);
@@ -452,61 +637,92 @@ export class SimulationEngine {
           const toOtherZ = other.position.z - vehicle.position.z;
           const distToOther = Math.hypot(toOtherX, toOtherZ);
 
-          if (distToOther < 12.0) {
+          if (distToOther < 14.0) {
+            const otherFx = Math.sin(other.heading || 0);
+            const otherFz = Math.cos(other.heading || 0);
+            const headingAlignment = fX * otherFx + fZ * otherFz;
+
+            if (headingAlignment < 0.2) continue;
+
             const longDist = fX * toOtherX + fZ * toOtherZ;
             const latDist = Math.abs(fX * toOtherZ - fZ * toOtherX);
 
-            if (latDist < 1.6 && longDist > 0.2) {
-              if (longDist < 4.8) {
-                effectiveSpeed = 0;
-              } else if (longDist < 8.5) {
-                const leadSpeed = other.speed > 0 ? other.speed : 0;
-                effectiveSpeed = Math.min(effectiveSpeed, Math.max(0, leadSpeed * 0.85));
+            if (latDist < 1.8 && longDist > 0.2) {
+              if (longDist < 4.2) {
+                effectiveSpeed = Math.max(20, other.speed > 0 ? other.speed * 0.9 : 20);
+              } else if (longDist < 10.0) {
+                const leadSpeed = other.speed > 0 ? other.speed : 24;
+                effectiveSpeed = Math.min(effectiveSpeed, Math.max(22, leadSpeed * 0.9));
               }
-            } else if (distToOther < 3.8 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
-              if (vehicle.id > other.id) {
-                effectiveSpeed = 0;
-              }
+            } else if (distToOther < 3.2 && (other.status === 'EN_ROUTE' || other.status === 'DEPARTING')) {
+              effectiveSpeed = Math.max(18, effectiveSpeed * 0.9);
             }
           }
         }
 
         const moveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
 
-        if (dist <= moveStep || dist < 0.6) {
+        if (vehicle.currentWaypointIndex >= waypoints.length - 1 && (dist <= moveStep || dist < 2.0)) {
           vehicle.position = { ...targetWp };
-          vehicle.currentWaypointIndex++;
-          if (vehicle.currentWaypointIndex >= waypoints.length) {
-            vehicle.status = 'LEFT_NETWORK';
-          }
+          vehicle.status = 'LEFT_NETWORK';
         } else {
-          vehicle.position.x += (dx / dist) * moveStep;
-          vehicle.position.z += (dz / dist) * moveStep;
-          vehicle.heading = Math.atan2(dx, dz);
+          const targetHeading = Math.atan2(dx, dz);
+          let headingDiff = targetHeading - (vehicle.heading || 0);
+          headingDiff = ((headingDiff + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+          const isHeavy = vehicle.model === 'Heavy Electric Hauler' || vehicle.model === 'Electric City Bus';
+          const maxTurnRate = isHeavy ? 2.8 : 4.0;
+          const maxTurn = maxTurnRate * SimulationEngine.DT * this.speedMultiplier;
+          const clampedTurn = Math.max(-maxTurn, Math.min(maxTurn, headingDiff));
+          vehicle.heading = (vehicle.heading || 0) + clampedTurn;
+          vehicle.heading = ((vehicle.heading + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+          if (Math.abs(headingDiff) > 0.4) {
+            const turnFactor = Math.min(1.0, (Math.abs(headingDiff) - 0.4) / 1.2);
+            effectiveSpeed = Math.max(18, effectiveSpeed * (1 - turnFactor * 0.35));
+          }
+
+          const actualMoveStep = (effectiveSpeed / 3.6) * 0.42 * this.speedMultiplier * SimulationEngine.DT;
+          const forwardStep = Math.min(dist, actualMoveStep);
+          vehicle.position.x += Math.sin(vehicle.heading) * forwardStep;
+          vehicle.position.z += Math.cos(vehicle.heading) * forwardStep;
         }
+
+        if (effectiveSpeed > 0) {
+          const drain = (effectiveSpeed * 0.0022) * this.speedMultiplier * SimulationEngine.DT;
+          vehicle.currentBatteryPct = Math.max(5, vehicle.currentBatteryPct - drain);
+          const maxRange = vehicle.batteryCapacityKwh ? vehicle.batteryCapacityKwh * 5.0 : 380;
+          vehicle.estimatedRangeKm = Math.max(8, Math.round((vehicle.currentBatteryPct / 100) * maxRange));
+          vehicle.tripDistanceKm += (moveStep * 0.001);
+        }
+        vehicle.speed = effectiveSpeed;
         break;
       }
 
       case 'LEFT_NETWORK': {
-        const randomStation = stations[Math.floor(Math.random() * stations.length)];
-        const newRoute = VehicleService.getRouteForStation(randomStation.code);
-
-        vehicle.destinationStationId = randomStation.id;
+        const newRoute = VehicleService.getRandomRoute(vehicle.position, vehicle.heading);
+        vehicle.destinationStationId = null;
         vehicle.routeWaypoints = newRoute;
         vehicle.currentWaypointIndex = 0;
-        vehicle.position = { ...newRoute[0] };
-        vehicle.heading = newRoute.length > 1 ? Math.atan2(newRoute[1].x - newRoute[0].x, newRoute[1].z - newRoute[0].z) : 0;
-        vehicle.currentBatteryPct = Math.floor(25 + Math.random() * 35);
+        if (newRoute.length > 0) {
+          vehicle.position = { ...newRoute[0] };
+        }
+        if (newRoute.length > 1) {
+          const nextWp = newRoute[1];
+          vehicle.heading = Math.atan2(nextWp.x - vehicle.position.x, nextWp.z - vehicle.position.z);
+        }
+        vehicle.currentBatteryPct = Math.floor(75 + Math.random() * 20);
         vehicle.estimatedRangeKm = Math.round((vehicle.currentBatteryPct / 100) * 380);
         vehicle.energyConsumedKwh = 0;
         vehicle.status = 'EN_ROUTE';
-        vehicle.routeProgress = 0;
+        vehicle.speed = Math.floor(36 + Math.random() * 10);
+        vehicle.routeProgress = 0.05;
+        vehicle.currentLocationName = `Patrolling City Route`;
         vehicle.etaMinutes = 4;
         break;
       }
 
       case 'UNDER_REPAIR': {
-        // Vehicle is in repair bay
         vehicle.speed = 0;
         if (vehicle.motorTemperatureC > 55) {
           vehicle.motorTemperatureC = Math.max(55, Math.round(vehicle.motorTemperatureC - (1.5 * this.speedMultiplier * SimulationEngine.DT)));
@@ -517,6 +733,28 @@ export class SimulationEngine {
         break;
       }
     }
+  }
+
+  private handleStationEntranceArrival(vehicle: Vehicle, stations: Station[]) {
+    const station = stations.find(s => s.id === vehicle.destinationStationId);
+    if (!station) {
+      vehicle.status = 'EN_ROUTE';
+      return;
+    }
+
+    vehicle.status = 'ENTERING_STATION';
+    vehicle.trafficState = 'ENTERING_STATION';
+    vehicle.currentStationId = station.id;
+    vehicle.speed = 14;
+    vehicle.currentLocationName = `Entering ${station.name} (${station.code}) apron`;
+
+    eventService.addEvent({
+      type: 'STATUS_CHANGE',
+      severity: 'INFO',
+      message: `🅿️ ${vehicle.code} arrived at ${station.name} entrance and transitioned into internal apron`,
+      vehicleId: vehicle.id,
+      stationId: station.id,
+    });
   }
 
   private handleServiceCenterArrival(vehicle: Vehicle) {
@@ -543,23 +781,33 @@ export class SimulationEngine {
     }
   }
 
-  // --- INTERACTIVE DEMO CONTROLS ---
-
   public triggerEVFault(vehicleCode: string = 'EV-024', faultReason: string = 'Motor Overheating (92°C)'): Vehicle | undefined {
     const v = vehicleService.getVehicleById(vehicleCode);
     if (!v) return undefined;
 
     v.status = 'SERVICE_REQUIRED';
+    v.trafficState = 'SERVICE_ROUTE';
     v.vehicleHealth = 'CRITICAL';
     v.motorTemperatureC = 92;
     v.batteryTemperatureC = 42;
     v.faultReason = faultReason;
+    v.speed = 0;
     v.updatedAt = new Date().toISOString();
+
+    const sc = stationService.getServiceCenter();
+    const scRoute = VehicleService.getRouteForServiceCenter(v.position);
+    v.serviceCenterId = sc.id;
+    v.destinationStationId = null;
+    v.routeWaypoints = scRoute;
+    v.currentWaypointIndex = 0;
+    v.status = 'EN_ROUTE';
+    v.speed = 28;
+    v.currentLocationName = 'In transit to S03 Diagnostics Service Hub';
 
     eventService.addEvent({
       type: 'FAULT',
       severity: 'CRITICAL',
-      message: `🚨 MOTOR OVERHEATING ALERT: ${v.code} (${v.model}) motor temp hit 92°C — SERVICE REQUIRED`,
+      message: `🚨 MOTOR OVERHEATING ALERT: ${v.code} (${v.model}) motor temp hit 92°C — Safe stop executed, routed to S03 Service Center via road network`,
       vehicleId: v.id,
     });
 
@@ -591,14 +839,14 @@ export class SimulationEngine {
 
   public triggerFault(stationCode?: string, chargerCode?: string) {
     const stations = stationService.getAllStations();
-    const targetStation = stationCode 
+    const targetStation = stationCode
       ? stations.find(s => s.code.toLowerCase() === stationCode.toLowerCase())
       : stations[0];
     if (!targetStation) return null;
 
     const targetCharger = chargerCode
       ? targetStation.chargers.find(c => c.code.toLowerCase() === chargerCode.toLowerCase())
-      : targetStation.chargers.find(c => c.status !== 'FAULT') || targetStation.chargers[0];
+      : targetStation.chargers.find(c => c.status === 'CHARGING') || targetStation.chargers.find(c => c.status !== 'FAULT') || targetStation.chargers[0];
 
     if (targetCharger) {
       stationService.setChargerStatus(
@@ -609,6 +857,40 @@ export class SimulationEngine {
         0,
         'Silicon Carbide Inverter Thermal Trip'
       );
+
+      const vehicles = vehicleService.getAllVehicles();
+      const affectedEv = vehicles.find(v => v.assignedChargerId === targetCharger.id && (v.status === 'CHARGING' || v.status === 'REVERSE_PARKING'));
+      if (affectedEv) {
+        affectedEv.chargingRateKw = 0;
+        eventService.addEvent({
+          type: 'FAULT',
+          severity: 'CRITICAL',
+          message: `🚨 CHARGER FAULT: Charger ${targetCharger.code} communication failed during active session with ${affectedEv.code} — Rerouting EV`,
+          vehicleId: affectedEv.id,
+          stationId: targetStation.id,
+          chargerId: targetCharger.id,
+        });
+
+        const altStation = stations.find(s => s.id !== targetStation.id && s.status === 'ONLINE' && s.chargers.some(c => c.status === 'AVAILABLE')) || stations[1] || stations[0];
+        const newRoute = VehicleService.getRouteFromCurrentPositionTo(affectedEv.position, altStation.position);
+
+        affectedEv.destinationStationId = altStation.id;
+        affectedEv.assignedChargerId = null;
+        affectedEv.routeWaypoints = newRoute;
+        affectedEv.currentWaypointIndex = 0;
+        affectedEv.status = 'LEAVING_STATION';
+        affectedEv.trafficState = 'REROUTING';
+        affectedEv.speed = 12;
+        affectedEv.currentLocationName = `Rerouting to ${altStation.name} [${altStation.code}]`;
+
+        eventService.addEvent({
+          type: 'REDIRECT',
+          severity: 'WARNING',
+          message: `🔄 ${affectedEv.code} disconnected from faulted Charger ${targetCharger.code} and rerouted to ${altStation.name} via road network`,
+          vehicleId: affectedEv.id,
+          stationId: altStation.id,
+        });
+      }
     }
     return { station: targetStation, charger: targetCharger };
   }
@@ -661,26 +943,34 @@ export class SimulationEngine {
     }
     if (!v) return undefined;
 
+    stationService.releaseChargerByVehicle(v.id);
+    stationService.releaseServiceBay(v.id);
+
+    v.assignedChargerId = null;
+    v.currentStationId = null;
+    v.serviceCenterId = null;
+    v.faultReason = null;
+
     const stations = stationService.getAllStations();
     const targetStation = stations[1] || stations[0];
-    const newRoute = VehicleService.getRouteForStation(targetStation.code);
+    const newRoute = VehicleService.getRouteFromCurrentPositionTo(v.position, targetStation.position);
 
     v.status = 'EN_ROUTE';
-    v.serviceCenterId = null;
+    v.trafficState = 'CRUISING';
     v.destinationStationId = targetStation.id;
     v.routeWaypoints = newRoute;
-    v.currentWaypointIndex = 1;
-    v.position = { ...newRoute[1] };
-    const nextWp = newRoute[2] || newRoute[1];
-    v.heading = Math.atan2(nextWp.x - newRoute[1].x, nextWp.z - newRoute[1].z);
+    v.currentWaypointIndex = 0;
+    if (newRoute.length > 1) {
+      v.heading = Math.atan2(newRoute[1].x - v.position.x, newRoute[1].z - v.position.z);
+    }
     v.speed = 42;
-    v.currentLocationName = `Boisar–Palghar Road`;
+    v.currentLocationName = `Boisar–Palghar Regional Corridor`;
     v.updatedAt = new Date().toISOString();
 
     eventService.addEvent({
       type: 'STATUS_CHANGE',
       severity: 'INFO',
-      message: `🚗 ${v.code} returned to the Boisar road network on Boisar–Palghar Highway`,
+      message: `🚗 ${v.code} returned to the regional road network on Boisar–Palghar Highway`,
       vehicleId: v.id,
     });
 

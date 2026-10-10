@@ -6,6 +6,7 @@ import { energyService } from '../modules/energy/energy.service';
 import { eventService } from '../modules/events/event.service';
 import { aiService } from '../modules/ai/ai.service';
 import { simulationEngine } from '../modules/simulation/simulation.engine';
+import { trafficController } from '../modules/simulation/traffic.controller';
 import { LiveEvent } from '../types';
 
 export class WebSocketGateway {
@@ -27,10 +28,8 @@ export class WebSocketGateway {
     this.io.on('connection', (socket: Socket) => {
       console.log(`🔌 [WebSocket] Client connected: ${socket.id}`);
 
-      // Send initial full snapshot
       socket.emit('snapshot', this.getFullSnapshot());
 
-      // Simulation Controls
       socket.on('simulation:spawn', () => {
         const v = vehicleService.spawnVehicle();
         this.broadcastVehicleUpdate(v);
@@ -66,10 +65,15 @@ export class WebSocketGateway {
       });
 
       socket.on('simulation:service-route', (payload?: { vehicleId?: string }) => {
-        const ok = vehicleService.sendToService(payload?.vehicleId || 'veh-ev-024');
+        const id = payload?.vehicleId || 'veh-ev-024';
+        const ok = vehicleService.sendToService(id);
         if (ok) {
-          const v = vehicleService.getVehicleById(payload?.vehicleId || 'veh-ev-024');
-          if (v) this.broadcastVehicleUpdate(v);
+          const v = vehicleService.getVehicleById(id);
+          if (v) {
+            this.broadcastVehicleUpdate(v);
+            this.io.emit('stations:all', stationService.getAllStations());
+            this.io.emit('service:update', stationService.getServiceCenter());
+          }
         }
       });
 
@@ -95,11 +99,36 @@ export class WebSocketGateway {
           }
           if (payload.status) {
             v.status = payload.status;
-            if (payload.status === 'EN_ROUTE' && (!v.routeWaypoints || v.routeWaypoints.length < 2)) {
-              const target = stationService.getAllStations()[0];
-              v.routeWaypoints = VehicleService.getRouteForStation(target.code);
-              v.currentWaypointIndex = 0;
+            if (payload.status === 'EN_ROUTE') {
+              v.trafficState = 'CRUISING';
+              if (typeof payload.speed === 'number' && payload.speed > 0) {
+                v.speed = payload.speed;
+              } else if (v.speed <= 0) {
+                v.speed = 42;
+              }
+              if (v.assignedChargerId) {
+                stationService.releaseChargerByVehicle(v.id);
+                v.assignedChargerId = null;
+                v.currentStationId = null;
+                this.io.emit('stations:all', stationService.getAllStations());
+              }
+              if (v.serviceCenterId) {
+                stationService.releaseServiceBay(v.id);
+                v.serviceCenterId = null;
+                this.io.emit('service:update', stationService.getServiceCenter());
+              }
+              if (!v.routeWaypoints || v.routeWaypoints.length < 2) {
+                const target = stationService.getAllStations()[0];
+                v.routeWaypoints = VehicleService.getRouteForStation(target.code, v.position);
+                v.currentWaypointIndex = 0;
+              }
+            } else if (payload.status === 'PAUSED') {
+              v.speed = 0;
+              v.trafficState = 'STOPPED';
             }
+          } else if (payload.speed === 0) {
+            v.status = 'PAUSED';
+            v.trafficState = 'STOPPED';
           }
           this.broadcastVehicleUpdate(v);
         }
@@ -162,14 +191,21 @@ export class WebSocketGateway {
       socket.on('simulation:return-to-road', (payload?: { vehicleCode?: string; vehicleId?: string }) => {
         const identifier = payload?.vehicleId || payload?.vehicleCode || 'EV-024';
         const v = simulationEngine.returnToRoad(identifier);
-        if (v) this.broadcastVehicleUpdate(v);
+        if (v) {
+          this.broadcastVehicleUpdate(v);
+          this.io.emit('stations:all', stationService.getAllStations());
+          this.io.emit('service:update', stationService.getServiceCenter());
+        }
       });
 
-      socket.on('simulation:reroute', (payload: { vehicleId: string; targetStationId: string }) => {
-        const ok = vehicleService.redirectVehicle(payload.vehicleId, payload.targetStationId);
+      socket.on('simulation:reroute', (payload: { vehicleId: string; targetStationId: string; customWaypoints?: any[] }) => {
+        const ok = vehicleService.redirectVehicle(payload.vehicleId, payload.targetStationId, payload.customWaypoints);
         if (ok) {
           const v = vehicleService.getVehicleById(payload.vehicleId);
-          if (v) this.broadcastVehicleUpdate(v);
+          if (v) {
+            this.broadcastVehicleUpdate(v);
+            this.io.emit('stations:all', stationService.getAllStations());
+          }
         }
       });
 
@@ -212,6 +248,7 @@ export class WebSocketGateway {
         tick: tickData.tick,
         stations,
         vehicles,
+        trafficSignals: tickData.trafficSignals || trafficController.getAllSignals(),
         kpis: tickData.kpis,
         energy: tickData.energy,
         powerGrid: tickData.powerGrid,
@@ -220,9 +257,6 @@ export class WebSocketGateway {
         recommendation: tickData.recommendation,
         scenarioStep: tickData.scenarioStep,
       });
-
-      this.io.emit('energy.updated', tickData.energy);
-      this.io.emit('grid.updated', tickData.powerGrid);
     });
   }
 
@@ -230,6 +264,7 @@ export class WebSocketGateway {
     return {
       stations: stationService.getAllStations(),
       vehicles: vehicleService.getAllVehicles(),
+      trafficSignals: trafficController.getAllSignals(),
       kpis: energyService.getKPIs(),
       energy: energyService.getEnergyMetrics(),
       powerGrid: energyService.getPowerGrid(),

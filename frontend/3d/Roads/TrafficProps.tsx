@@ -33,23 +33,19 @@ function CustomGLBProp({ path, position, rotation = [0, 0, 0], scale = 0.5 }: Pr
   );
 }
 
-/** Procedural realistic highway traffic cone */
 function ProceduralTrafficCone({ position, rotation = [0, 0, 0] }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   return (
     <group position={position} rotation={rotation}>
-      {/* Heavy rubber square base */}
       <mesh castShadow receiveShadow position={[0, 0.02, 0]}>
         <boxGeometry args={[0.38, 0.04, 0.38]} />
         <meshStandardMaterial color="#0f172a" roughness={0.9} />
       </mesh>
 
-      {/* Main orange cone body */}
       <mesh castShadow position={[0, 0.42, 0]}>
         <coneGeometry args={[0.16, 0.8, 16]} />
         <meshStandardMaterial color="#ea580c" roughness={0.7} />
       </mesh>
 
-      {/* Reflective safety collar */}
       <mesh position={[0, 0.46, 0]}>
         <cylinderGeometry args={[0.09, 0.12, 0.22, 16]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.4} metalness={0.1} />
@@ -58,13 +54,11 @@ function ProceduralTrafficCone({ position, rotation = [0, 0, 0] }: { position: [
   );
 }
 
-/** Procedural highway A-frame barricade with amber hazard beacon */
 function ProceduralBarricade({ position, rotation = [0, 0, 0] }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame((state) => {
     if (lightRef.current) {
-      // Subtle hazard strobe blink
       const t = state.clock.getElapsedTime() * 3;
       lightRef.current.intensity = (Math.sin(t) > 0.4) ? 0.8 : 0.05;
     }
@@ -72,7 +66,6 @@ function ProceduralBarricade({ position, rotation = [0, 0, 0] }: { position: [nu
 
   return (
     <group position={position} rotation={rotation}>
-      {/* Dual steel legs */}
       {[-0.6, 0.6].map((lx, idx) => (
         <group key={idx} position={[lx, 0.45, 0]}>
           <mesh castShadow position={[0, 0, 0]}>
@@ -82,19 +75,16 @@ function ProceduralBarricade({ position, rotation = [0, 0, 0] }: { position: [nu
         </group>
       ))}
 
-      {/* Cross reflector beam */}
       <mesh castShadow receiveShadow position={[0, 0.65, 0]}>
         <boxGeometry args={[1.4, 0.22, 0.05]} />
         <meshStandardMaterial color="#d97706" roughness={0.6} />
       </mesh>
       
-      {/* Secondary reflector beam */}
       <mesh castShadow receiveShadow position={[0, 0.32, 0]}>
         <boxGeometry args={[1.4, 0.18, 0.05]} />
         <meshStandardMaterial color="#334155" roughness={0.8} />
       </mesh>
 
-      {/* Top amber warning beacon */}
       <mesh position={[0, 0.88, 0]}>
         <cylinderGeometry args={[0.08, 0.08, 0.14, 12]} />
         <meshStandardMaterial color="#f59e0b" roughness={0.2} metalness={0.3} />
@@ -122,41 +112,32 @@ export function TrafficProps() {
     checkModel();
   }, []);
 
-  // Strategically placed traffic props along spurs, maintenance spots, and boulevard medians
   const coneLocations: Array<{ pos: [number, number, number]; rot?: [number, number, number] }> = [
-    // Station A102 spur safety buffer
     { pos: [-20, 0.06, 17.2] },
     { pos: [-21.2, 0.06, 17.2] },
     { pos: [-22.4, 0.06, 17.2] },
 
-    // Station B104 spur safety buffer
     { pos: [18, 0.06, 27.2] },
     { pos: [19.2, 0.06, 27.2] },
     { pos: [20.4, 0.06, 27.2] },
 
-    // North Boulevard maintenance work area
     { pos: [12, 0.06, -37.8] },
     { pos: [14, 0.06, -37.8] },
     { pos: [16, 0.06, -37.8] },
     { pos: [18, 0.06, -37.8] },
 
-    // Station C201 maintenance perimeter
     { pos: [-20, 0.06, -26.8] },
     { pos: [-21.5, 0.06, -26.8] },
 
-    // Central Boulevard turn corners
     { pos: [-4.2, 0.06, 4.2], rot: [0, 0.4, 0] },
     { pos: [4.2, 0.06, -4.2], rot: [0, -0.4, 0] },
   ];
 
   const barricadeLocations: Array<{ pos: [number, number, number]; rot?: [number, number, number] }> = [
-    // Road maintenance barrier on North avenue
     { pos: [15, 0.06, -35.2], rot: [0, 0, 0] },
     
-    // Station D305 expansion spur barricade
     { pos: [20, 0.06, -23.5], rot: [0, Math.PI / 2, 0] },
 
-    // West perimeter maintenance buffer
     { pos: [-35.5, 0.06, 12], rot: [0, 0, 0] },
   ];
 
@@ -187,7 +168,6 @@ export function TrafficProps() {
     );
   }
 
-  // Graceful procedural fallbacks matching realistic dark enterprise aesthetic
   return (
     <group name="ProceduralTrafficProps">
       {coneLocations.map((c, i) => (

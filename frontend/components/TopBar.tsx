@@ -18,7 +18,7 @@ import {
   Flame,
   Globe,
   Layers,
-  Car 
+  Car
 } from 'lucide-react';
 import { CameraMode, MapMode } from '../types';
 
@@ -38,8 +38,6 @@ export function TopBar() {
   const mapMode = useDigitalTwinStore((s) => s.mapMode);
   const setMapMode = useDigitalTwinStore((s) => s.setMapMode);
   const powerGrid = useDigitalTwinStore((s) => s.powerGrid);
-  const isManualDrive = useDigitalTwinStore((s) => s.isManualDrive);
-  const setManualDrive = useDigitalTwinStore((s) => s.setManualDrive);
 
   const [search, setSearch] = useState('');
   const [time, setTime] = useState('');
@@ -97,9 +95,7 @@ export function TopBar() {
   return (
     <div className="fixed top-0 left-56 right-0 z-20 px-6 pt-3 pb-2 select-none pointer-events-none">
       <div className="flex flex-col gap-2 pointer-events-auto">
-        {/* Top Control Bar */}
         <div className="flex items-center justify-between gap-3">
-          {/* Search Input — WareTrack Pill Input */}
           <form onSubmit={handleSearchSubmit} className="relative w-72 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
@@ -111,7 +107,6 @@ export function TopBar() {
             />
           </form>
 
-          {/* Global Network KPIs Row — WareTrack Metric Badges */}
           <div className="flex items-center gap-2">
             <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-3 py-1 text-[11px] shadow-sm">
               <span className="text-slate-400 block text-[9px] font-mono font-medium">ACTIVE EVs</span>
@@ -165,23 +160,8 @@ export function TopBar() {
             )}
           </div>
 
-          {/* Right Toolbar: Drive EV, Scenario Launcher, Sim Drawer, Events */}
           <div className="flex items-center gap-2">
-            {/* Direct Keyboard Drive EV Action */}
-            <button
-              onClick={() => setManualDrive(!isManualDrive)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md ${
-                isManualDrive
-                  ? 'bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-400 animate-pulse'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
-              }`}
-              title="Drive EV around Boisar using your keyboard (W/A/S/D)"
-            >
-              <span>🎮</span>
-              <span>{isManualDrive ? 'EXIT DRIVE' : 'DRIVE EV'}</span>
-            </button>
 
-            {/* Presentation Scenario Launcher */}
             <button
               onClick={() => toggleScenarioDrawer()}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md ${
@@ -194,7 +174,6 @@ export function TopBar() {
               <span>DEMO SCENARIO</span>
             </button>
 
-            {/* Sim Controls */}
             <button
               onClick={() => toggleSimDrawer()}
               title="Simulation Controls"
@@ -203,7 +182,6 @@ export function TopBar() {
               <Sliders className="w-4 h-4" />
             </button>
 
-            {/* Live Events */}
             <button
               onClick={() => toggleEvents()}
               title="Network Events Log"
@@ -219,10 +197,8 @@ export function TopBar() {
           </div>
         </div>
 
-        {/* Navigation Modes Bar */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            {/* Map Modes Switcher */}
             <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
               <span className="text-slate-400 font-bold mr-1 text-[10px]">MAP MODE:</span>
               {mapModes.map((mm) => {
@@ -247,7 +223,6 @@ export function TopBar() {
               })}
             </div>
 
-            {/* Camera Modes Bar (visible in 3D modes) */}
             {mapMode !== 'REAL_MAP' && (
               <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-xl px-2 py-1 flex items-center gap-1 text-[11px] font-mono shadow-sm">
                 <Camera className="w-3 h-3 text-slate-400" />
@@ -269,7 +244,6 @@ export function TopBar() {
             )}
           </div>
 
-          {/* Grid Overload Warning Marquee */}
           {isGridOverloaded && (
             <div className="bg-red-50 border border-red-300 px-2.5 py-1 rounded-xl text-[10px] font-semibold text-red-700 flex items-center gap-1.5 shadow-sm animate-pulse">
               <AlertTriangle className="w-3.5 h-3.5 text-red-600" />

@@ -22,7 +22,6 @@ export function IncidentMarkers() {
             selectStation(st.id);
           }}
         >
-          {/* Subtle small red warning indicator dot */}
           <mesh>
             <sphereGeometry args={[0.22, 12, 12]} />
             <meshBasicMaterial color="#ef4444" />

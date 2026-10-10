@@ -31,7 +31,6 @@ export function TwoDMapOverlay() {
           </button>
         </div>
 
-        {/* Nodes Grid */}
         <div className="py-3 grid grid-cols-2 gap-2 text-xs">
           {stations.map((st) => {
             const avail = st.chargers.filter((c) => c.status === 'AVAILABLE').length;
@@ -64,7 +63,6 @@ export function TwoDMapOverlay() {
             );
           })}
 
-          {/* Substation Node */}
           <div
             onClick={() => {
               selectGrid();
@@ -86,7 +84,6 @@ export function TwoDMapOverlay() {
             </div>
           </div>
 
-          {/* Service Center Node */}
           <div
             onClick={() => {
               selectServiceCenter();

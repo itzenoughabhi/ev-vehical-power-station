@@ -1,5 +1,18 @@
 export type StationStatus = 'ONLINE' | 'DEGRADED' | 'OVERLOADED' | 'OFFLINE';
 
+export type TrafficSignalColor = 'RED' | 'YELLOW' | 'GREEN';
+
+export interface TrafficSignal {
+  id: string;
+  name: string;
+  intersection: string;
+  position: Position3D;
+  stopLine: Position3D;
+  heading: number;
+  state: TrafficSignalColor;
+  timeRemainingSec: number;
+}
+
 export type ChargerStatus = 
   | 'AVAILABLE' 
   | 'CHARGING' 
@@ -10,12 +23,16 @@ export type ChargerStatus =
 
 export type VehicleStatus = 
   | 'EN_ROUTE' 
+  | 'PAUSED'
   | 'ARRIVING' 
+  | 'ENTERING_STATION'
+  | 'REVERSE_PARKING'
   | 'QUEUE' 
   | 'CHARGER_ASSIGNED' 
   | 'CHARGING' 
   | 'COMPLETED' 
   | 'DEPARTING' 
+  | 'LEAVING_STATION'
   | 'LOW_BATTERY' 
   | 'FAULT' 
   | 'SERVICE_REQUIRED' 
@@ -23,6 +40,23 @@ export type VehicleStatus =
   | 'READY' 
   | 'MANUAL_DRIVE'
   | 'LEFT_NETWORK';
+
+export type TrafficState = 
+  | 'CRUISING'
+  | 'APPROACHING_INTERSECTION'
+  | 'WAITING_INTERSECTION'
+  | 'TURNING'
+  | 'FOLLOWING'
+  | 'STOPPED'
+  | 'QUEUING'
+  | 'ENTERING_STATION'
+  | 'REVERSE_PARKING'
+  | 'CHARGING'
+  | 'LEAVING_STATION'
+  | 'FAULT'
+  | 'REROUTING'
+  | 'SERVICE_ROUTE'
+  | 'RETURNING';
 
 export type VehicleModel = 
   | 'Tata Nexon EV'
@@ -102,6 +136,7 @@ export interface Vehicle {
   targetBatteryPct: number;
   estimatedRangeKm: number;
   status: VehicleStatus;
+  trafficState?: TrafficState;
   speed: number;
   position: Position3D;
   heading: number;

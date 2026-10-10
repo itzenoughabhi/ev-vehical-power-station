@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
 import { socketService } from '../services/socket';
+import { MargdarshakModal } from './MargdarshakModal';
 import { 
   X, 
   Navigation, 
@@ -25,6 +26,8 @@ export function VehiclePanel() {
   const clearSelection = useDigitalTwinStore((s) => s.clearSelection);
   const trackingVehicleId = useDigitalTwinStore((s) => s.trackingVehicleId);
   const toggleTrackVehicle = useDigitalTwinStore((s) => s.toggleTrackVehicle);
+  const updateVehicle = useDigitalTwinStore((s) => s.updateVehicle);
+  const [isMargdarshakOpen, setIsMargdarshakOpen] = useState(false);
 
   if (!vehicle) {
     return null;
@@ -36,6 +39,7 @@ export function VehiclePanel() {
   const formatStatus = (st: string) => {
     switch (st) {
       case 'EN_ROUTE': return '● EN ROUTE';
+      case 'PAUSED': return '⏸ PAUSED';
       case 'ARRIVING': return '● ARRIVING';
       case 'QUEUE': return '● QUEUE';
       case 'CHARGER_ASSIGNED': return '● CHARGER ASSIGNED';
@@ -55,7 +59,6 @@ export function VehiclePanel() {
   const isOverheating = (vehicle.motorTemperatureC ?? 67) > 85;
   const isBatteryHot = (vehicle.batteryTemperatureC ?? 31) > 40;
 
-  // Real-world EV charging time estimation
   const isCharging = vehicle.status === 'CHARGING';
   const targetPct = vehicle.targetBatteryPct || 85;
   const capacityKwh = vehicle.batteryCapacityKwh || (vehicle.model === 'Commercial EV Van' ? 80 : 50);
@@ -67,20 +70,45 @@ export function VehiclePanel() {
   const minutesToTarget = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToTarget / activePowerKw) * 60)) : 0;
   const minutesToFull = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToFull / activePowerKw) * 60)) : 0;
 
-  // Actions
   const handleStart = () => {
     socketService.emit('vehicle:update', { id: vehicle.id, speed: 42, status: 'EN_ROUTE' });
+    updateVehicle(vehicle.id, {
+      speed: 42,
+      status: 'EN_ROUTE',
+      trafficState: 'CRUISING',
+    });
   };
 
   const handlePause = () => {
-    socketService.emit('vehicle:update', { id: vehicle.id, speed: 0 });
+    socketService.emit('vehicle:update', { id: vehicle.id, speed: 0, status: 'PAUSED' });
+    updateVehicle(vehicle.id, {
+      speed: 0,
+      status: 'PAUSED',
+      trafficState: 'STOPPED',
+    });
   };
 
   const handleReroute = () => {
-    // Recommend best alternative station (e.g. B104 over congested A102)
-    const target = stations.find(s => s.code === 'B104') || stations[1];
+    const currentDest = vehicle.destinationStationId || vehicle.currentStationId;
+    const candidates = stations.filter(s => s.id !== currentDest);
+    const target = candidates.sort((a, b) => {
+      const da = Math.hypot(vehicle.position.x - a.position.x, vehicle.position.z - a.position.z);
+      const db = Math.hypot(vehicle.position.x - b.position.x, vehicle.position.z - b.position.z);
+      return da - db;
+    })[0] || stations[0];
+
     if (target) {
       socketService.rerouteVehicle(vehicle.id, target.id);
+      updateVehicle(vehicle.id, {
+        destinationStationId: target.id,
+        currentStationId: null,
+        assignedChargerId: null,
+        serviceCenterId: null,
+        status: 'EN_ROUTE',
+        trafficState: 'CRUISING',
+        speed: 42,
+        currentLocationName: `Rerouting to ${target.name} [${target.code}]`,
+      });
     }
   };
 
@@ -90,32 +118,40 @@ export function VehiclePanel() {
       window.dispatchEvent(new CustomEvent('vehicledrive:interact'));
       return;
     }
-    let closest = stations[0];
-    let minDist = Infinity;
-    for (const st of stations) {
-      const d = Math.hypot(vehicle.position.x - st.position.x, vehicle.position.z - st.position.z);
-      if (d < minDist) {
-        minDist = d;
-        closest = st;
-      }
-    }
-    if (closest) {
-      socketService.rerouteVehicle(vehicle.id, closest.id);
-    }
+    setIsMargdarshakOpen(true);
   };
 
   const handleSendToService = () => {
     socketService.sendToService(vehicle.id);
+    const sc = useDigitalTwinStore.getState().serviceCenter;
+    updateVehicle(vehicle.id, {
+      serviceCenterId: sc?.id || 'sc-tarapur-01',
+      destinationStationId: null,
+      assignedChargerId: null,
+      currentStationId: null,
+      status: 'EN_ROUTE',
+      trafficState: 'SERVICE_ROUTE',
+      speed: 38,
+      currentLocationName: `Dispatching to Diagnostic Hub [S03]`,
+    });
   };
 
   const handleReturnHome = () => {
-    socketService.emit('simulation:return-to-road', { vehicleCode: vehicle.code });
+    socketService.emit('simulation:return-to-road', { vehicleCode: vehicle.code, vehicleId: vehicle.id });
+    updateVehicle(vehicle.id, {
+      status: 'EN_ROUTE',
+      trafficState: 'CRUISING',
+      speed: 42,
+      serviceCenterId: null,
+      assignedChargerId: null,
+      currentStationId: null,
+      currentLocationName: `Returning to Regional Road Network`,
+    });
   };
 
   return (
     <div className="fixed top-20 right-8 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-200/90 text-slate-800 font-sans text-xs">
-        {/* Header */}
         <div className="flex items-start justify-between pb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm ${
@@ -133,7 +169,7 @@ export function VehiclePanel() {
                 </span>
               </div>
               <p className={`text-[11px] font-bold ${
-                isOverheating ? 'text-red-600' : vehicle.status === 'CHARGING' ? 'text-emerald-600' : 'text-blue-600'
+                isOverheating ? 'text-red-600' : vehicle.status === 'PAUSED' ? 'text-amber-600' : vehicle.status === 'CHARGING' ? 'text-emerald-600' : 'text-blue-600'
               }`}>
                 {formatStatus(vehicle.status)}
               </p>
@@ -147,7 +183,6 @@ export function VehiclePanel() {
           </button>
         </div>
 
-        {/* Battery & Health Banner */}
         <div className="my-2.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="flex items-center gap-1.5 text-slate-600 font-medium">
@@ -170,7 +205,6 @@ export function VehiclePanel() {
           </div>
         </div>
 
-        {/* Deep Real-Time Vehicle Telemetry Grid */}
         <div className="space-y-1.5 py-1 text-slate-600 text-[11px]">
           <div className="flex justify-between py-0.5 border-b border-slate-100">
             <span>SPEED</span>
@@ -205,7 +239,6 @@ export function VehiclePanel() {
             </span>
           </div>
 
-          {/* Real-Time Estimated Charging Time Required */}
           {isCharging ? (
             <div className="p-2.5 my-1.5 rounded-xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-blue-500/10 border border-emerald-500/40 shadow-sm space-y-1.5">
               <div className="flex items-center justify-between text-xs">
@@ -245,7 +278,6 @@ export function VehiclePanel() {
             </div>
           )}
 
-          {/* Thermal Telemetry */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <div className={`p-1.5 rounded-lg bg-slate-50 border ${
               isOverheating ? 'border-red-300 bg-red-50 text-red-700' : 'border-slate-200 text-slate-700'
@@ -272,14 +304,12 @@ export function VehiclePanel() {
             </div>
           </div>
 
-          {/* Mechanical Subsystems */}
           <div className="flex justify-between text-[10px] text-slate-500 pt-1 font-mono">
             <span>BRAKE: <strong className="text-emerald-600 font-bold">{vehicle.brakeSystemHealth ?? 'NORMAL'}</strong></span>
             <span>TYRES: <strong className="text-emerald-600 font-bold">{vehicle.tyreHealth ?? 'NORMAL'}</strong></span>
           </div>
         </div>
 
-        {/* Autonomous Fleet Controls */}
         <div className="mt-3 pt-2.5 border-t border-slate-100">
           <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1.5 font-mono">
             Autonomous Fleet Controls
@@ -287,23 +317,34 @@ export function VehiclePanel() {
           <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={handleStart}
-              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors"
+              title="Resume vehicle motion and cruise"
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                vehicle.status === 'EN_ROUTE' && vehicle.speed > 0
+                  ? 'bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400 font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
             >
-              <Play className="w-3 h-3 text-emerald-600" />
+              <Play className={`w-3 h-3 ${vehicle.status === 'EN_ROUTE' && vehicle.speed > 0 ? 'text-white fill-white' : 'text-emerald-600'}`} />
               <span>START</span>
             </button>
 
             <button
               onClick={handlePause}
-              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors"
+              title="Halt vehicle in place immediately"
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                vehicle.status === 'PAUSED' || vehicle.speed === 0
+                  ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-300 font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
             >
-              <Pause className="w-3 h-3 text-amber-600" />
+              <Pause className={`w-3 h-3 ${vehicle.status === 'PAUSED' || vehicle.speed === 0 ? 'text-white fill-white' : 'text-amber-600'}`} />
               <span>PAUSE</span>
             </button>
 
             <button
               onClick={handleReroute}
-              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors"
+              title="Recalculate route to alternative station"
+              className="py-1.5 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-all border border-blue-200 active:scale-95"
             >
               <CornerUpRight className="w-3 h-3 text-blue-600" />
               <span>REROUTE</span>
@@ -311,30 +352,44 @@ export function VehiclePanel() {
 
             <button
               onClick={handleSendToCharger}
-              className="py-1 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors border border-blue-200"
+              title="Navigate to nearest charging hub"
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all border active:scale-95 ${
+                vehicle.status === 'CHARGING' || vehicle.status === 'ENTERING_STATION' || vehicle.status === 'REVERSE_PARKING'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold'
+                  : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200'
+              }`}
             >
-              <BatteryCharging className="w-3 h-3 text-blue-600" />
+              <BatteryCharging className={`w-3 h-3 ${vehicle.status === 'CHARGING' ? 'text-white' : 'text-blue-600'}`} />
               <span>TO CHARGER</span>
             </button>
 
             <button
               onClick={handleSendToService}
-              className="py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors border border-amber-200"
+              title="Dispatch to workshop diagnostics bay"
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all border active:scale-95 ${
+                vehicle.serviceCenterId || vehicle.status === 'UNDER_REPAIR' || vehicle.status === 'SERVICE_REQUIRED'
+                  ? 'bg-amber-600 text-white border-amber-600 shadow-sm font-bold'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
+              }`}
             >
-              <Wrench className="w-3 h-3 text-amber-600" />
+              <Wrench className={`w-3 h-3 ${vehicle.serviceCenterId ? 'text-white' : 'text-amber-600'}`} />
               <span>TO SERVICE</span>
             </button>
 
             <button
               onClick={handleReturnHome}
-              className="py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors"
+              title="Disengage and merge onto regional highway corridor"
+              className={`py-1.5 px-2 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 transition-all active:scale-95 ${
+                vehicle.status === 'EN_ROUTE' && !vehicle.destinationStationId && !vehicle.serviceCenterId
+                  ? 'bg-slate-700 text-white font-bold'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
             >
               <Home className="w-3 h-3 text-slate-500" />
               <span>TO ROAD</span>
             </button>
           </div>
 
-          {/* Camera Follow Toggle */}
           <button
             onClick={() => toggleTrackVehicle(vehicle.id)}
             className={`w-full mt-2 py-1.5 rounded-xl text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5 ${
@@ -348,6 +403,13 @@ export function VehiclePanel() {
           </button>
         </div>
       </div>
+
+      <MargdarshakModal
+        isOpen={isMargdarshakOpen}
+        onClose={() => setIsMargdarshakOpen(false)}
+        vehicle={vehicle}
+        stations={stations}
+      />
     </div>
   );
 }

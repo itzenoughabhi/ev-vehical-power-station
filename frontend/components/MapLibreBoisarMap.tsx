@@ -30,11 +30,9 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [activeLayerMode, setActiveLayerMode] = useState<'roads' | 'satellite' | 'dark'>('dark');
 
-  // Initialize MapLibre GL instance
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    // Dark technical OpenStreetMap tile style
     const osmStyle = {
       version: 8 as const,
       sources: {
@@ -67,7 +65,7 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
     const map = new MapLibreMap({
       container: mapContainerRef.current,
       style: osmStyle,
-      center: [BOISAR_GEO_CENTER.lon, BOISAR_GEO_CENTER.lat], // [72.7657359, 19.7902325]
+      center: [BOISAR_GEO_CENTER.lon, BOISAR_GEO_CENTER.lat],
       zoom: 12.0,
       pitch: 25,
       bearing: -5,
@@ -79,13 +77,11 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
     map.on('load', () => {
       setMapLoaded(true);
 
-      // Add real OSM GeoJSON roads vector layer
       map.addSource('boisar-osm-roads', {
         type: 'geojson',
         data: '/data/boisar_roads_geojson.json',
       });
 
-      // Secondary & local roads layer
       map.addLayer({
         id: 'boisar-roads-local',
         type: 'line',
@@ -98,7 +94,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         },
       });
 
-      // Major arterial highways (Boisar-Palghar Road, Navapur Road)
       map.addLayer({
         id: 'boisar-roads-major',
         type: 'line',
@@ -111,7 +106,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         },
       });
 
-      // Major road glow
       map.addLayer({
         id: 'boisar-roads-glow',
         type: 'line',
@@ -132,16 +126,13 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
     };
   }, []);
 
-  // Synchronize Live Markers on OpenStreetMap
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     const map = mapRef.current;
 
-    // Remove existing markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // 1. Charging Station Markers
     stations.forEach((st) => {
       const geo = localToLatLon(st.position.x, st.position.z);
       const el = document.createElement('div');
@@ -164,7 +155,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       markersRef.current.push(marker);
     });
 
-    // 2. Substation GRID-S01 Marker
     if (powerGrid) {
       const geo = localToLatLon(powerGrid.position.x, powerGrid.position.z);
       const el = document.createElement('div');
@@ -184,7 +174,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       markersRef.current.push(marker);
     }
 
-    // 3. Service Center S03 Marker
     if (serviceCenter) {
       const geo = localToLatLon(serviceCenter.position.x, serviceCenter.position.z);
       const el = document.createElement('div');
@@ -198,7 +187,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       markersRef.current.push(marker);
     }
 
-    // 4. Home Chargers Markers
     homeChargers.forEach((hc) => {
       const geo = localToLatLon(hc.position.x, hc.position.z);
       const el = document.createElement('div');
@@ -212,7 +200,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       markersRef.current.push(marker);
     });
 
-    // 5. Live Moving EV Markers
     vehicles.forEach((veh) => {
       const geo = localToLatLon(veh.position.x, veh.position.z);
       const el = document.createElement('div');
@@ -235,7 +222,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
       markersRef.current.push(marker);
     });
 
-    // 6. Civic & Town Landmarks (Mandir, Market, Hospital, Mall)
     const civicLandmarks = [
       { name: 'Shri Ram Mandir', icon: '🕉️', pos: { x: 26, z: 0 }, color: 'bg-amber-600 border-amber-400' },
       { name: 'Station Bazaar', icon: '🛍️', pos: { x: 12, z: -22 }, color: 'bg-emerald-600 border-emerald-400' },
@@ -275,10 +261,8 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
 
   return (
     <div className="relative w-full h-full select-none bg-[#0b0f19]">
-      {/* MapLibre WebGL Canvas Container */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Real Geographic Data Watermark Header */}
       <div className="absolute top-24 left-60 z-10 pointer-events-none">
         <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 rounded-lg px-3.5 py-2 shadow-xl flex items-center gap-3">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -293,7 +277,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         </div>
       </div>
 
-      {/* Switch to 3D Digital Twin Action Banner */}
       {onSwitchTo3D && (
         <div className="absolute top-24 right-8 z-20 pointer-events-auto">
           <button
@@ -306,7 +289,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         </div>
       )}
 
-      {/* Floating Map Navigation Controls */}
       <div className="absolute bottom-6 right-8 z-20 flex items-center gap-2 pointer-events-auto">
         <button
           onClick={handleZoomIn}
@@ -333,7 +315,6 @@ export function MapLibreBoisarMap({ onSwitchTo3D }: Props) {
         </button>
       </div>
 
-      {/* Distinction Banner: Real Geography vs Simulated Infrastructure */}
       <div className="absolute bottom-6 left-60 z-10 pointer-events-none">
         <div className="bg-[#111827]/90 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-lg text-[10px] font-mono text-slate-400 flex items-center gap-4 shadow-lg">
           <span className="text-sky-400 font-semibold">● Real OSM Roads & Geography</span>

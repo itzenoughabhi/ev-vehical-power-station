@@ -52,7 +52,6 @@ export function Sidebar() {
   return (
     <aside className="fixed top-0 left-0 bottom-0 w-56 z-30 bg-white/95 backdrop-blur-md border-r border-slate-200/90 shadow-sm flex flex-col justify-between py-5 px-3 select-none pointer-events-auto font-sans">
       <div>
-        {/* Brand Header */}
         <div 
           className="px-2 mb-6 cursor-pointer" 
           onClick={() => handleNavClick('overview')}
@@ -75,7 +74,6 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Navigation List */}
         <nav className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -98,7 +96,6 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Demo Scenario Launcher in Sidebar */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <button
             onClick={() => toggleScenarioDrawer()}
@@ -114,7 +111,6 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Network Status Badge */}
       <div className="px-2 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
         <span className="flex items-center gap-1.5 font-medium">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

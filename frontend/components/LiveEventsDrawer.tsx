@@ -16,7 +16,6 @@ export function LiveEventsDrawer() {
   return (
     <div className="fixed top-24 left-60 z-30 w-88 select-none pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-200">
       <div className="bg-[#111827]/98 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-slate-800 text-slate-200 font-sans text-xs max-h-96 flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Bell className="w-3.5 h-3.5 text-blue-400" />
@@ -32,7 +31,6 @@ export function LiveEventsDrawer() {
           </button>
         </div>
 
-        {/* Minimal Event List */}
         <div className="mt-2 overflow-y-auto space-y-1.5 text-xs pr-1">
           {events.length === 0 ? (
             <div className="py-6 text-center text-slate-500 font-mono text-[11px]">

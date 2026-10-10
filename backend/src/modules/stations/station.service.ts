@@ -27,7 +27,7 @@ export class StationService {
         code: 'A102',
         name: 'Boisar Central Hub',
         district: 'Railway Station / Market Corridor',
-        position: { x: -8, y: 0, z: -18 },
+        position: { x: -16, y: 0, z: -28 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -36,7 +36,7 @@ export class StationService {
         code: 'B104',
         name: 'Navapur Road Hub',
         district: 'West Industrial Corridor',
-        position: { x: -48, y: 0, z: -28 },
+        position: { x: -48, y: 0, z: -32 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -45,7 +45,7 @@ export class StationService {
         code: 'C201',
         name: 'MIDC Industrial Hub',
         district: 'Tarapur Heavy Chemical Zone',
-        position: { x: -48, y: 0, z: 22 },
+        position: { x: -50, y: 0, z: 18 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -54,17 +54,16 @@ export class StationService {
         code: 'D305',
         name: 'Boisar–Palghar Corridor',
         district: 'South Highway Interchange',
-        position: { x: 38, y: 0, z: 65 },
+        position: { x: 42, y: 0, z: 65 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
-      // --- PALGHAR DISTRICT LONG-DISTANCE REGIONAL HUBS ---
       {
         id: 'st-p401',
         code: 'P401',
         name: 'Palghar District Central Hub',
         district: 'Palghar Collectorate & Railway Junction',
-        position: { x: 48, y: 0, z: 200 },
+        position: { x: 64, y: 0, z: 190 },
         maxCapacityKw: 900,
         chargersCount: 6,
       },
@@ -73,7 +72,7 @@ export class StationService {
         code: 'S801',
         name: 'Shirgaon Beach & Fort Hub',
         district: 'Shirgaon Historic Coast & Ocean Promenade',
-        position: { x: -65, y: 0, z: 210 },
+        position: { x: -65, y: 0, z: 218 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -82,7 +81,7 @@ export class StationService {
         code: 'M501',
         name: 'Manor NH-48 Express Hub',
         district: 'Mumbai-Ahmedabad Expressway Corridor',
-        position: { x: 210, y: 0, z: -20 },
+        position: { x: 212, y: 0, z: -26 },
         maxCapacityKw: 1200,
         chargersCount: 6,
       },
@@ -91,7 +90,7 @@ export class StationService {
         code: 'T601',
         name: 'Tarapur Coastal Energy Hub',
         district: 'Tarapur Atomic Zone & Chinchani Coast',
-        position: { x: -96, y: 0, z: -32 },
+        position: { x: -96, y: 0, z: -38 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -100,7 +99,7 @@ export class StationService {
         code: 'D701',
         name: 'Dahanu Highway Hub',
         district: 'North Palghar Coastal Gateway',
-        position: { x: 36, y: 0, z: -220 },
+        position: { x: 48, y: 0, z: -220 },
         maxCapacityKw: 600,
         chargersCount: 4,
       },
@@ -115,7 +114,7 @@ export class StationService {
           code: cCode,
           stationId: rs.id,
           status: 'AVAILABLE',
-          powerKw: i === 1 ? 350 : 150, // Ultra-fast + fast chargers
+          powerKw: i === 1 ? 350 : 150,
           currentPowerKw: 0,
           currentEvId: null,
           failureCount: 0,
@@ -384,6 +383,21 @@ export class StationService {
     sc.updatedAt = new Date().toISOString();
 
     return true;
+  }
+
+  public releaseChargerByVehicle(vehicleId: string): boolean {
+    for (const station of this.stations.values()) {
+      const charger = station.chargers.find(c => c.currentEvId === vehicleId);
+      if (charger) {
+        charger.status = 'AVAILABLE';
+        charger.currentEvId = null;
+        charger.currentPowerKw = 0;
+        charger.updatedAt = new Date().toISOString();
+        this.recomputeStationMetrics(station);
+        return true;
+      }
+    }
+    return false;
   }
 }
 

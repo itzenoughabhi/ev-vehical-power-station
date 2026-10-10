@@ -1,5 +1,18 @@
 export type StationStatus = 'ONLINE' | 'DEGRADED' | 'OVERLOADED' | 'OFFLINE';
 
+export type TrafficSignalColor = 'RED' | 'YELLOW' | 'GREEN';
+
+export interface TrafficSignal {
+  id: string;
+  name: string;
+  intersection: string;
+  position: Position3D;
+  stopLine: Position3D;
+  heading: number;
+  state: TrafficSignalColor;
+  timeRemainingSec: number;
+}
+
 export type ChargerStatus = 
   | 'AVAILABLE' 
   | 'CHARGING' 
@@ -10,12 +23,16 @@ export type ChargerStatus =
 
 export type VehicleStatus = 
   | 'EN_ROUTE' 
+  | 'PAUSED'
   | 'ARRIVING' 
+  | 'ENTERING_STATION'
+  | 'REVERSE_PARKING'
   | 'QUEUE' 
   | 'CHARGER_ASSIGNED' 
   | 'CHARGING' 
   | 'COMPLETED' 
   | 'DEPARTING' 
+  | 'LEAVING_STATION'
   | 'LOW_BATTERY' 
   | 'FAULT' 
   | 'SERVICE_REQUIRED' 
@@ -23,6 +40,23 @@ export type VehicleStatus =
   | 'READY' 
   | 'MANUAL_DRIVE'
   | 'LEFT_NETWORK';
+
+export type TrafficState = 
+  | 'CRUISING'
+  | 'APPROACHING_INTERSECTION'
+  | 'WAITING_INTERSECTION'
+  | 'TURNING'
+  | 'FOLLOWING'
+  | 'STOPPED'
+  | 'QUEUING'
+  | 'ENTERING_STATION'
+  | 'REVERSE_PARKING'
+  | 'CHARGING'
+  | 'LEAVING_STATION'
+  | 'FAULT'
+  | 'REROUTING'
+  | 'SERVICE_ROUTE'
+  | 'RETURNING';
 
 export type VehicleModel = 
   | 'Tata Nexon EV'
@@ -55,10 +89,10 @@ export interface Position3D {
 
 export interface Charger {
   id: string;
-  code: string; // e.g. "A102-01"
+  code: string;
   stationId: string;
   status: ChargerStatus;
-  powerKw: number; // Max capability (150kW or 350kW)
+  powerKw: number;
   currentPowerKw: number;
   currentEvId: string | null;
   failureCount: number;
@@ -68,7 +102,7 @@ export interface Charger {
 
 export interface Station {
   id: string;
-  code: string; // "A102", "B104", "C201", "D305"
+  code: string;
   name: string;
   district: string;
   status: StationStatus;
@@ -76,40 +110,40 @@ export interface Station {
   maxCapacityKw: number;
   currentLoadKw: number;
   dailyEnergyKwh: number;
-  utilizationRate: number; // 0 - 100%
+  utilizationRate: number;
   avgChargingTimeMin: number;
   estimatedWaitMinutes: number;
   todaySessionsCount: number;
   chargers: Charger[];
-  queue: string[]; // Vehicle IDs in queue
+  queue: string[];
   activeIncidentsCount: number;
   updatedAt: string;
 }
 
 export interface Vehicle {
   id: string;
-  code: string; // "EV-024"
+  code: string;
   model: VehicleModel;
   batteryCapacityKwh: number;
   currentBatteryPct: number;
   targetBatteryPct: number;
   estimatedRangeKm: number;
   status: VehicleStatus;
+  trafficState?: TrafficState;
   speed: number;
   position: Position3D;
-  heading: number; // in radians
+  heading: number;
   destinationStationId: string | null;
   assignedChargerId: string | null;
   currentStationId: string | null;
   currentLocationName: string;
   etaMinutes: number;
-  routeProgress: number; // 0.0 to 1.0
+  routeProgress: number;
   routeWaypoints: Position3D[];
   currentWaypointIndex: number;
   chargingRateKw: number;
   energyConsumedKwh: number;
   tripDistanceKm: number;
-  // Deep Telemetry
   motorTemperatureC: number;
   batteryTemperatureC: number;
   brakeSystemHealth: 'NORMAL' | 'WARNING';
@@ -123,16 +157,16 @@ export interface Vehicle {
 }
 
 export interface HomeCharger {
-  homeId: string; // "HOME-024"
-  chargerId: string; // "HC-024"
-  locationName: string; // "Betegaon Green Valley"
+  homeId: string;
+  chargerId: string;
+  locationName: string;
   position: Position3D;
-  connectedEvId: string | null; // "EV-118"
+  connectedEvId: string | null;
   connectedEvModel?: string;
-  chargingPowerKw: number; // 7.2 kW
-  batteryPct: number; // 42%
+  chargingPowerKw: number;
+  batteryPct: number;
   status: 'CHARGING' | 'STANDBY' | 'AVAILABLE';
-  estimatedCompletionTime: string; // "02:15"
+  estimatedCompletionTime: string;
   updatedAt: string;
 }
 
@@ -148,14 +182,14 @@ export interface ServiceCenterBay {
 
 export interface ServiceCenter {
   id: string;
-  code: string; // "S03"
-  name: string; // "Tarapur EV Diagnostics & Service Hub"
-  locationName: string; // "Tarapur MIDC / Boisar Link"
+  code: string;
+  name: string;
+  locationName: string;
   position: Position3D;
-  totalBays: number; // 4
+  totalBays: number;
   occupiedBays: number;
   availableBays: number;
-  techniciansCount: number; // 6
+  techniciansCount: number;
   batteryDiagnostics: 'AVAILABLE' | 'ACTIVE';
   bays: ServiceCenterBay[];
   updatedAt: string;
@@ -171,12 +205,12 @@ export interface PowerGridFeeder {
 }
 
 export interface PowerGrid {
-  substationId: string; // "GRID-S01"
-  substationName: string; // "Boisar Distribution Substation"
+  substationId: string;
+  substationName: string;
   position: Position3D;
-  capacityMw: number; // 5.0 MW
-  currentLoadMw: number; // 3.4 MW -> 4.55 MW
-  loadPercentage: number; // 68% -> 91%
+  capacityMw: number;
+  currentLoadMw: number;
+  loadPercentage: number;
   status: 'NORMAL' | 'OVERLOAD_RISK';
   feeders: PowerGridFeeder[];
   isSurgeActive: boolean;

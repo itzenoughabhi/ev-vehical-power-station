@@ -18,14 +18,9 @@ export class AiService {
     return AiService.instance;
   }
 
-  /**
-   * Evaluates congestion, queues, and faults to generate intelligent rerouting recommendations.
-   * Compares stations based on: distance + wait time + charger availability + load.
-   */
   public evaluateNetworkOptimization(): Recommendation | null {
     const now = Date.now();
     if (now - this.lastEvaluationTime < 8000) {
-      // Limit recommendation churn
       return null;
     }
     this.lastEvaluationTime = now;
@@ -33,14 +28,12 @@ export class AiService {
     const stations = stationService.getAllStations();
     const vehicles = vehicleService.getAllVehicles();
 
-    // Find stations with queues or heavy congestion
     const congestedStations = stations.filter(
       s => s.queue.length > 0 || s.utilizationRate >= 80 || s.chargers.some(c => c.status === 'FAULT')
     );
 
     if (congestedStations.length === 0) return null;
 
-    // Find vehicles en route or arriving at these congested stations
     const candidateVehicles = vehicles.filter(
       v => (v.status === 'EN_ROUTE' || v.status === 'ARRIVING') &&
            v.destinationStationId &&
@@ -51,7 +44,6 @@ export class AiService {
     const vehicle = candidateVehicles[0];
     const currentStation = stations.find(s => s.id === vehicle.destinationStationId)!;
 
-    // Find best alternate station
     const otherStations = stations.filter(s => s.id !== currentStation.id);
     let bestStation: Station | null = null;
     let lowestScore = Infinity;
@@ -60,12 +52,10 @@ export class AiService {
       const availableCount = alt.chargers.filter(c => c.status === 'AVAILABLE').length;
       const faultCount = alt.chargers.filter(c => c.status === 'FAULT').length;
       
-      // Calculate distance score from vehicle to alt station
       const dx = vehicle.position.x - alt.position.x;
       const dz = vehicle.position.z - alt.position.z;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
-      // Score formula: (WaitTime * 2) + (LoadPct * 0.8) + (Dist * 0.5) - (AvailableChargers * 15) + (Faults * 30)
       const score = (alt.estimatedWaitMinutes * 2) + 
                     (alt.utilizationRate * 0.8) + 
                     (dist * 0.5) - 
@@ -84,7 +74,6 @@ export class AiService {
     const altWait = Math.max(2, bestStation.estimatedWaitMinutes);
     const timeSaved = Math.max(5, currentWait - altWait);
 
-    // If already recommended and pending, don't spam
     if (this.pendingRecommendations.has(vehicle.id)) {
       return this.pendingRecommendations.get(vehicle.id)!;
     }
@@ -137,10 +126,6 @@ export class AiService {
     return true;
   }
 
-  /**
-   * Deterministic AI Assistant answer generation with comprehensive telemetry reasoning.
-   * Can be hooked directly into an external Python FastAPI / LLM endpoint when desired.
-   */
   public async handleAssistantQuery(query: string): Promise<{ answer: string; confidence: number; telemetryContext: any }> {
     const lower = query.toLowerCase();
     const stations = stationService.getAllStations();

@@ -8,269 +8,211 @@ export interface RoadDef {
   points: [number, number, number][];
 }
 
-/**
- * Real-world geographic topology of Boisar, Maharashtra (Lat: 19.7902325, Lon: 72.7657359)
- * Modeled with natural curves, branches, varied widths, and real Indian industrial/urban layout.
- */
 export const BOISAR_ROADS: RoadDef[] = [
-  // 1. Boisar–Palghar Road (Major Arterial Highway running South through Palghar District HQ)
   {
     id: 'boisar-palghar-main',
     name: 'Boisar–Palghar Highway (SH-40)',
     type: 'arterial',
     width: 7.8,
     points: [
-      [48, 0, 200],     // Palghar District Headquarters & Collectorate (P401)
-      [42, 0, 170],     // Palghar North Outskirts
-      [34, 0, 135],     // Umroli Regional Interchange (Shirgaon turnoff)
-      [28, 0, 95],      // Toward Palghar North
-      [26, 0, 65],      // Station D305 Access Highway Junction
-      [22, 0, 48],      // Betegaon South
-      [16, 0, 28],      // Saravali junction
-      [5, 0, 10],       // Transition towards town
-      [4.5, 0, 0],      // Boisar MIDC Circle East Lane
-      [-4, 0, -8.5],    // Boisar MIDC Circle North Lane
-      [6, 0, -18],      // Boisar Town Centre
-      [18, 0, -32],     // Boisar East / Station Approach
-      [28, 0, -55],     // Toward Dahanu / Manor link
+      [48, 0, 190],
+      [42, 0, 170],
+      [34, 0, 135],
+      [28, 0, 95],
+      [26, 0, 65],
+      [22, 0, 48],
+      [16, 0, 28],
+      [5, 0, 10],
+      [0, 0, -2],
+      [6, 0, -18],
+      [18, 0, -32],
+      [28, 0, -55],
     ],
   },
 
-  // 2. Shirgaon Coastal Fort & Beach Road (Scenic coastal highway to Shirgaon)
   {
     id: 'shirgaon-coastal-road',
     name: 'Shirgaon Beach Coastal Highway',
     type: 'arterial',
     width: 7.2,
     points: [
-      [34, 0, 135],     // Umroli Junction turnoff from SH-40
-      [12, 0, 150],     // Shirgaon East Palms
-      [-15, 0, 170],    // Shirgaon Rural Enclave
-      [-42, 0, 192],    // Shirgaon Historic Fort Approach
-      [-65, 0, 210],    // Shirgaon Beach & Fort Hub (S801)
+      [34, 0, 135],
+      [12, 0, 150],
+      [-15, 0, 170],
+      [-42, 0, 192],
+      [-65, 0, 205],
     ],
   },
 
-  // 3. Navapur Road & Tarapur Coastal Energy Highway (Sweeping West across Tarapur Coast)
   {
     id: 'navapur-road',
     name: 'Tarapur Coastal Highway',
     type: 'arterial',
     width: 7.4,
     points: [
-      [-4, 0, -8.5],    // Boisar MIDC Circle North Lane
-      [-12.5, 0, -2],   // Boisar MIDC Circle West Lane
-      [-16, 0, -4],     // MIDC Phase 1 entrance
-      [-30, 0, -10],    // Tarapur MIDC Central
-      [-48, 0, -16],    // Navapur Highway near B104 Hub
-      [-68, 0, -22],    // Navapur Outer Ring
-      [-82, 0, -28],    // Chinchani Coast Road
-      [-96, 0, -32],    // Tarapur Coastal Energy Hub (T601) on dry land
+      [0, 0, -2],
+      [-16, 0, -4],
+      [-30, 0, -10],
+      [-48, 0, -16],
+      [-68, 0, -22],
+      [-82, 0, -24],
+      [-96, 0, -24],
     ],
   },
 
-  // 4. Manor NH-48 Express Corridor (Elevated multi-level highway flyover)
   {
     id: 'manor-nh48-expressway',
     name: 'Manor NH-48 Express Highway',
     type: 'highway',
     width: 8.4,
     points: [
-      [6, 0.04, -18],      // Boisar Town Centre
-      [45, 2.4, -16],      // Elevated Flyover Ramp Up
-      [105, 2.8, -16],     // Elevated Overpass Cross-Bridge
-      [160, 2.4, -18],     // Surya River Valley Bridge
-      [210, 0.04, -20],    // Manor NH-48 Express Hub (M501)
+      [6, 0.04, -18],
+      [45, 0.04, -16],
+      [105, 0.04, -14],
+      [160, 0.04, -10],
+      [210, 0.04, -8],
     ],
   },
 
-  // 5. Dahanu Northern Arterial Highway (North gateway toward Dahanu Coastal Region)
   {
     id: 'dahanu-north-highway',
     name: 'Dahanu Northern Arterial Highway',
     type: 'highway',
     width: 7.6,
     points: [
-      [28, 0, -55],     // Boisar North Corridor
-      [30, 0, -110],    // Vangaon Junction
-      [33, 0, -165],    // Dahanu Agro Chikoo Belt Corridor
-      [36, 0, -220],    // Dahanu Highway Hub (D701)
+      [28, 0, -55],
+      [30, 0, -110],
+      [31, 0, -165],
+      [32, 0, -220],
     ],
   },
 
-  // 6. Palghar–Manor Regional Connector (Completing the Palghar District Regional Ring)
   {
     id: 'palghar-manor-connector',
     name: 'Palghar–Manor Link Road',
     type: 'arterial',
     width: 7.0,
     points: [
-      [48, 0, 200],     // Palghar District Central Hub
-      [90, 0, 140],     // Surya River Valley Corridor South
-      [155, 0, 60],     // Manor South Link
-      [210, 0, -20],    // Manor NH-48 Express Hub
+      [48, 0, 190],
+      [90, 0, 135],
+      [155, 0, 55],
+      [210, 0, -8],
     ],
   },
 
-  // 3. Tarapur MIDC Industrial Main Ring (Wide heavy-duty industrial loop connecting manufacturing & chemical sheds)
   {
     id: 'tarapur-midc-ring',
     name: 'Tarapur MIDC Industrial Ring',
     type: 'industrial',
     width: 6.8,
     points: [
-      [-16, 0, -4],     // Branch off Navapur Road
-      [-22, 0, 10],     // MIDC Chemical Sector
-      [-36, 0, 22],     // Near C201 Industrial Hub
-      [-28, 0, 34],     // Heavy Engineering Sector
-      [-14, 0, 26],     // Near S03 EV Service Center
-      [-2, 0, 16],      // Saravali Industrial border
-      [5, 0, 10],       // Reconnect to Boisar-Palghar Highway
+      [-16, 0, -4],
+      [-22, 0, 10],
+      [-36, 0, 18],
+      [-28, 0, 34],
+      [-14, 0, 26],
+      [-2, 0, 16],
+      [5, 0, 10],
     ],
   },
 
-  // 4. Tarapur MIDC Northern Feeder & Substation Access (Connects to GRID-S01 Substation [-48, 0, -65])
   {
     id: 'midc-substation-spur',
     name: 'Substation Feeder Corridor',
     type: 'industrial',
     width: 5.6,
     points: [
-      [-30, 0, -10],    // Navapur Road mid-point
-      [-40, 0, -32],    // Industrial Feeder Ave
-      [-48, 0, -65],    // GRID-S01 Boisar Substation
-      [-28, 0, -60],    // Northern Grid Sub-link
-      [6, 0, -45],      // Reconnect North corridor
+      [-30, 0, -10],
+      [-40, 0, -32],
+      [-48, 0, -50],
+      [-28, 0, -50],
+      [0, 0, -45],
+      [18, 0, -32],
     ],
   },
 
-  // 5. Saravali & Betegaon Residential Collector (Gentle curved suburban road connecting housing & green belts)
   {
     id: 'betegaon-saravali-loop',
     name: 'Saravali–Betegaon Link Road',
     type: 'residential',
     width: 5.4,
     points: [
-      [16, 0, 22],      // Saravali Highway junction
-      [26, 0, 18],      // Near HOME-024 (Betegaon Green Valley)
-      [36, 0, 8],       // Betegaon Residential Sector
-      [38, 0, -6],      // Betegaon Enclave / HOME-088
-      [28, 0, -20],     // Residential Green Belt
-      [18, 0, -32],     // Reconnect to Boisar East Highway
+      [16, 0, 28],
+      [26, 0, 18],
+      [36, 0, 8],
+      [38, 0, -6],
+      [28, 0, -20],
+      [18, 0, -32],
     ],
   },
 
-  // 6. Boisar Station Access Spur (Connects Boisar Central Hub A102)
   {
     id: 'boisar-central-spur',
     name: 'Station Access Loop',
     type: 'arterial',
     width: 6.2,
     points: [
-      [-4, 0, -8.5],    // Boisar MIDC Circle North Lane
-      [-8, 0, -6],      // Station A102 Highway Bypass
-      [-14, 0, -12],    // Station Approach
-      [-20, 0, -10],    // Merge to Navapur Road
+      [0, 0, -2],
+      [-8, 0, -14],
+      [-14, 0, -18],
+      [-16, 0, -4],
     ],
   },
 
-  // 7. Betegaon Residential Branch (Curving residential road north of Station D305)
   {
     id: 'betegaon-suburban-lane',
     name: 'Betegaon Heights Lane',
     type: 'residential',
     width: 4.8,
     points: [
-      [18, 0, 22],      // Saravali / Highway junction
-      [26, 0, 22],      // Suburban connector
-      [34, 0, 20],      // Near HOME-052
-      [40, 0, 20],      // Betegaon Palms
-      [36, 0, 8],       // Joins Betegaon loop
+      [16, 0, 28],
+      [26, 0, 22],
+      [34, 0, 20],
+      [40, 0, 20],
+      [36, 0, 8],
     ],
   },
 
-  // 8. Shirgaon–Palghar Regional Coastal Link (Direct arterial connecting Shirgaon S801 to Palghar P401)
   {
     id: 'shirgaon-palghar-link',
     name: 'Shirgaon–Palghar Link Road',
     type: 'arterial',
     width: 7.2,
     points: [
-      [-65, 0, 210],    // Shirgaon Beach & Fort Hub (S801)
-      [-30, 0, 208],    // Shirgaon South Palms
-      [-5, 0, 205],     // Shirgaon-Palghar Rural Cross
-      [22, 0, 202],     // Palghar West Approach
-      [48, 0, 200],     // Palghar District Central Hub (P401)
-    ],
-  },
-
-  // 9. Station D305 Dedicated Arterial Apron Road & Turnaround Forecourt
-  {
-    id: 'station-d305-driveway',
-    name: 'Station D305 Arterial Apron Road',
-    type: 'arterial',
-    width: 6.8,
-    points: [
-      [26, 0, 65],      // Boisar-Palghar Highway T-Junction
-      [32, 0, 65],      // Forecourt approach
-      [38, 0, 65],      // Station D305 Forecourt (direct bay access)
-    ],
-  },
-
-  // 10. Station B104 Dedicated Apron Access Road
-  {
-    id: 'station-b104-driveway',
-    name: 'Station B104 Access Driveway',
-    type: 'industrial',
-    width: 6.2,
-    points: [
-      [-48, 0, -16],    // Navapur Highway junction
-      [-48, 0, -22],    // Forecourt approach
-      [-48, 0, -28],    // Apron bays
-    ],
-  },
-
-  // 11. Station C201 Dedicated Apron Access Road
-  {
-    id: 'station-c201-driveway',
-    name: 'Station C201 Access Driveway',
-    type: 'industrial',
-    width: 6.2,
-    points: [
-      [-36, 0, 22],     // MIDC Ring Road junction
-      [-42, 0, 22],     // Industrial approach
-      [-48, 0, 22],     // Apron bays
-    ],
-  },
-
-  // 12. Station A102 Dedicated Apron Access Road
-  {
-    id: 'station-a102-driveway',
-    name: 'Station A102 Access Driveway',
-    type: 'arterial',
-    width: 6.2,
-    points: [
-      [-8, 0, -6],      // Spur Highway bypass
-      [-8, 0, -14],     // Forecourt approach
-      [-8, 0, -18],     // Apron bays
-    ],
-  },
-
-  // 13. S03 Diagnostics Service Hub Dedicated Apron Access Road
-  {
-    id: 'service-center-s03-driveway',
-    name: 'S03 Diagnostics Service Hub Driveway',
-    type: 'industrial',
-    width: 6.4,
-    points: [
-      [-28, 0, 34],     // MIDC Ring Road junction
-      [-28, 0, 45],     // Forecourt approach
-      [-28, 0, 54],     // S03 Workshop Service Bays
+      [-65, 0, 205],
+      [-30, 0, 203],
+      [-5, 0, 200],
+      [22, 0, 195],
+      [48, 0, 190],
     ],
   },
 ];
 
-// Pre-create Three.js CatmullRom curves for mathematical sampling
+export interface IntersectionDef {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+  type: 'roundabout' | 'major_cross' | 't_junction' | 'interchange';
+}
+
+export const BOISAR_INTERSECTIONS: IntersectionDef[] = [
+  { id: 'jct-palghar', name: 'Palghar Central Interchange (SH-40 Corridor)', x: 48, y: 0.04, z: 190, radius: 4.4, type: 'major_cross' },
+  { id: 'jct-umroli', name: 'Umroli Regional Interchange (SH-40 & Coastal Branch)', x: 34, y: 0.04, z: 135, radius: 4.2, type: 'interchange' },
+  { id: 'jct-saravali', name: 'Saravali Regional 4-Way Junction', x: 16, y: 0.04, z: 28, radius: 4.2, type: 'major_cross' },
+  { id: 'jct-midc-saravali', name: 'Saravali / MIDC Industrial Link', x: 5, y: 0.04, z: 10, radius: 4.2, type: 't_junction' },
+  { id: 'jct-town', name: 'Boisar Town Center & Manor Flyover Portal', x: 6, y: 0.04, z: -18, radius: 4.4, type: 'interchange' },
+  { id: 'jct-east', name: 'Boisar East Railway & Residential Junction', x: 18, y: 0.04, z: -32, radius: 4.2, type: 't_junction' },
+  { id: 'jct-dahanu-fork', name: 'Dahanu Northern Arterial Gateway', x: 28, y: 0.04, z: -55, radius: 4.2, type: 't_junction' },
+  { id: 'jct-manor-terminus', name: 'Manor NH-48 Express Terminal Interchange', x: 210, y: 0.04, z: -8, radius: 4.5, type: 'major_cross' },
+  { id: 'jct-shirgaon-coast', name: 'Shirgaon Coastal Promenade Junction', x: -65, y: 0.04, z: 205, radius: 4.2, type: 't_junction' },
+  { id: 'jct-midc-branch', name: 'Tarapur MIDC Chemical Sector Split', x: -16, y: 0.04, z: -4, radius: 4.2, type: 't_junction' },
+  { id: 'jct-central-cross', name: 'Central Highway 2-Lane Junction', x: 0, y: 0.04, z: -2, radius: 4.4, type: 'major_cross' },
+  { id: 'jct-betegaon-merge', name: 'Betegaon Residential Loop Merge', x: 36, y: 0.04, z: 8, radius: 4.0, type: 't_junction' },
+];
+
 export const BOISAR_CURVES: Map<string, THREE.CatmullRomCurve3> = new Map();
 
 BOISAR_ROADS.forEach((road) => {
@@ -285,11 +227,11 @@ export const BOISAR_POIs = {
     code: 'A102',
     name: 'Boisar Central Hub',
     district: 'Railway Station / Market Corridor',
-    position: [-8, 0, -18] as [number, number, number],
+    position: [-16, 0, -28] as [number, number, number],
     queuePositions: [
-      [-4, 0, -23] as [number, number, number],
-      [-1.5, 0, -23] as [number, number, number],
-      [1.0, 0, -23] as [number, number, number],
+      [-16, 0, -20] as [number, number, number],
+      [-13.5, 0, -20] as [number, number, number],
+      [-11.0, 0, -20] as [number, number, number],
     ],
   },
   stationB104: {
@@ -297,11 +239,11 @@ export const BOISAR_POIs = {
     code: 'B104',
     name: 'Navapur Road Hub',
     district: 'West Industrial Corridor',
-    position: [-48, 0, -28] as [number, number, number],
+    position: [-48, 0, -32] as [number, number, number],
     queuePositions: [
-      [-44, 0, -33] as [number, number, number],
-      [-41.5, 0, -33] as [number, number, number],
-      [-39, 0, -33] as [number, number, number],
+      [-48, 0, -24] as [number, number, number],
+      [-45.5, 0, -24] as [number, number, number],
+      [-43.0, 0, -24] as [number, number, number],
     ],
   },
   stationC201: {
@@ -309,11 +251,11 @@ export const BOISAR_POIs = {
     code: 'C201',
     name: 'MIDC Industrial Hub',
     district: 'Tarapur Heavy Chemical Zone',
-    position: [-48, 0, 22] as [number, number, number],
+    position: [-50, 0, 18] as [number, number, number],
     queuePositions: [
-      [-44, 0, 27] as [number, number, number],
-      [-41.5, 0, 27] as [number, number, number],
-      [-39, 0, 27] as [number, number, number],
+      [-43, 0, 25] as [number, number, number],
+      [-40.5, 0, 25] as [number, number, number],
+      [-38.0, 0, 25] as [number, number, number],
     ],
   },
   stationD305: {
@@ -321,11 +263,11 @@ export const BOISAR_POIs = {
     code: 'D305',
     name: 'Boisar–Palghar Corridor',
     district: 'South Highway Interchange',
-    position: [38, 0, 65] as [number, number, number],
+    position: [42, 0, 65] as [number, number, number],
     queuePositions: [
-      [42, 0, 60] as [number, number, number],
-      [44.5, 0, 60] as [number, number, number],
-      [47, 0, 60] as [number, number, number],
+      [42, 0, 72] as [number, number, number],
+      [44.5, 0, 72] as [number, number, number],
+      [47.0, 0, 72] as [number, number, number],
     ],
   },
   stationP401: {
@@ -333,11 +275,11 @@ export const BOISAR_POIs = {
     code: 'P401',
     name: 'Palghar District Central Hub',
     district: 'Palghar Collectorate & Railway Junction',
-    position: [48, 0, 200] as [number, number, number],
+    position: [64, 0, 190] as [number, number, number],
     queuePositions: [
-      [52, 0, 195] as [number, number, number],
-      [54.8, 0, 195] as [number, number, number],
-      [57.6, 0, 195] as [number, number, number],
+      [56, 0, 197] as [number, number, number],
+      [58.8, 0, 197] as [number, number, number],
+      [61.6, 0, 197] as [number, number, number],
     ],
   },
   stationS801: {
@@ -345,11 +287,11 @@ export const BOISAR_POIs = {
     code: 'S801',
     name: 'Shirgaon Beach & Fort Hub',
     district: 'Shirgaon Historic Coast & Ocean Promenade',
-    position: [-65, 0, 210] as [number, number, number],
+    position: [-65, 0, 218] as [number, number, number],
     queuePositions: [
-      [-61, 0, 205] as [number, number, number],
-      [-58.2, 0, 205] as [number, number, number],
-      [-55.4, 0, 205] as [number, number, number],
+      [-65, 0, 212] as [number, number, number],
+      [-62.2, 0, 212] as [number, number, number],
+      [-59.4, 0, 212] as [number, number, number],
     ],
   },
   stationM501: {
@@ -357,11 +299,11 @@ export const BOISAR_POIs = {
     code: 'M501',
     name: 'Manor NH-48 Express Hub',
     district: 'Mumbai-Ahmedabad Expressway Corridor',
-    position: [210, 0, -20] as [number, number, number],
+    position: [212, 0, -26] as [number, number, number],
     queuePositions: [
-      [214, 0, -25] as [number, number, number],
-      [216.8, 0, -25] as [number, number, number],
-      [219.6, 0, -25] as [number, number, number],
+      [211, 0, -17] as [number, number, number],
+      [213.8, 0, -17] as [number, number, number],
+      [216.6, 0, -17] as [number, number, number],
     ],
   },
   stationT601: {
@@ -369,11 +311,11 @@ export const BOISAR_POIs = {
     code: 'T601',
     name: 'Tarapur Coastal Energy Hub',
     district: 'Tarapur Atomic Zone & Chinchani Coast',
-    position: [-96, 0, -32] as [number, number, number],
+    position: [-96, 0, -38] as [number, number, number],
     queuePositions: [
-      [-92, 0, -37] as [number, number, number],
-      [-89.2, 0, -37] as [number, number, number],
-      [-86.4, 0, -37] as [number, number, number],
+      [-96, 0, -31] as [number, number, number],
+      [-93.2, 0, -31] as [number, number, number],
+      [-90.4, 0, -31] as [number, number, number],
     ],
   },
   stationD701: {
@@ -381,11 +323,11 @@ export const BOISAR_POIs = {
     code: 'D701',
     name: 'Dahanu Highway Hub',
     district: 'North Palghar Coastal Gateway',
-    position: [36, 0, -220] as [number, number, number],
+    position: [48, 0, -220] as [number, number, number],
     queuePositions: [
-      [40, 0, -215] as [number, number, number],
-      [42.8, 0, -215] as [number, number, number],
-      [45.6, 0, -215] as [number, number, number],
+      [40, 0, -213] as [number, number, number],
+      [42.8, 0, -213] as [number, number, number],
+      [45.6, 0, -213] as [number, number, number],
     ],
   },
   serviceCenterS03: {
@@ -463,9 +405,6 @@ export const BOISAR_POIs = {
   },
 };
 
-/**
- * Generates high-density curved waypoints between two POIs or road segments.
- */
 export function getCurvedRoute(roadId: string, startT: number = 0, endT: number = 1, samples: number = 32): [number, number, number][] {
   const curve = BOISAR_CURVES.get(roadId);
   if (!curve) return [];
@@ -479,9 +418,6 @@ export function getCurvedRoute(roadId: string, startT: number = 0, endT: number 
   return points;
 }
 
-/**
- * Finds the closest point and tangent vector on the Boisar road network.
- */
 export function findNearestRoadPoint(x: number, z: number): {
   road: RoadDef;
   point: THREE.Vector3;
@@ -522,12 +458,9 @@ export interface RoadDriveState {
   roadId: string;
   u: number;
   direction: 1 | -1;
-  laneOffset: number; // -1.4m (left lane) to +1.4m (right lane)
+  laneOffset: number;
 }
 
-/**
- * Finds an intersecting or connecting road within proximity of a given point.
- */
 export function findConnectedRoad(
   currentRoadId: string,
   pt: THREE.Vector3,
@@ -548,7 +481,6 @@ export function findConnectedRoad(
       const d = Math.hypot(p.x - pt.x, p.z - pt.z);
       if (d < minDist) {
         minDist = d;
-        // Direction is forward (+1) if near start (u < 0.5), reverse (-1) if near end (u >= 0.5)
         best = {
           roadId: road.id,
           u,
@@ -561,11 +493,6 @@ export function findConnectedRoad(
   return best;
 }
 
-/**
- * Advance vehicle position and heading along authentic Boisar road network.
- * Keeps the EV strictly on the asphalt roadway with responsive steering,
- * lane positioning, and smooth transitions at intersections.
- */
 export function advanceRoadDrive(
   driveState: RoadDriveState,
   speedKmh: number,
@@ -585,21 +512,17 @@ export function advanceRoadDrive(
   let nextDirection = driveState.direction;
   let nextLaneOffset = driveState.laneOffset;
 
-  // Lane steering adjustments
   if (steerInput === 'left') {
     nextLaneOffset = Math.max(-1.6, nextLaneOffset - 2.8 * delta);
   } else if (steerInput === 'right') {
     nextLaneOffset = Math.min(1.6, nextLaneOffset + 2.8 * delta);
   } else {
-    // Return toward right-hand driving lane (matches going vehicle on right, coming on left)
     nextLaneOffset = THREE.MathUtils.damp(nextLaneOffset, 1.45, 1.8, delta);
   }
 
-  // Calculate curve parameter displacement based on speed (km/h -> m/s)
   const forwardMeters = (speedKmh / 3.6) * delta;
   let nextU = driveState.u + (forwardMeters / roadLength) * nextDirection;
 
-  // Check endpoint transitions / road network links
   if (nextU > 1.0 || nextU < 0.0) {
     const endPt = curve.getPointAt(nextU > 1.0 ? 1.0 : 0.0);
     const connected = findConnectedRoad(nextRoadId, endPt);
@@ -608,7 +531,6 @@ export function advanceRoadDrive(
       nextU = connected.u;
       nextDirection = connected.direction;
     } else {
-      // Terminal dead end (e.g. Navapur Beach) -> smooth U-turn and return
       nextDirection = (nextDirection === 1 ? -1 : 1) as (1 | -1);
       nextU = Math.max(0.01, Math.min(0.99, nextU));
       nextLaneOffset = -nextLaneOffset;
@@ -620,14 +542,11 @@ export function advanceRoadDrive(
   const curvePoint = activeCurve.getPointAt(clampedU);
   const tangent = activeCurve.getTangentAt(clampedU);
 
-  // Normal vector perpendicular to roadway tangent
   const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
 
-  // Position vehicle precisely on the road with lane offset
   const posX = curvePoint.x + normal.x * nextLaneOffset;
   const posZ = curvePoint.z + normal.z * nextLaneOffset;
 
-  // Orientation aligned with curve heading
   let heading = Math.atan2(tangent.x * nextDirection, tangent.z * nextDirection);
   if (steerInput === 'left') heading += 0.08 * nextDirection;
   if (steerInput === 'right') heading -= 0.08 * nextDirection;

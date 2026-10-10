@@ -38,7 +38,6 @@ export function ManualDriveHUD() {
   useEffect(() => {
     if (!isManualDrive || !vehicle) return;
 
-    // Check proximity to all stations
     let minDist = Infinity;
     let closestStation = null;
 
@@ -76,7 +75,6 @@ export function ManualDriveHUD() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-40 select-none flex flex-col justify-between p-6">
-      {/* Top Center: Drive Mode Banner & Exit Button */}
       <div className="flex items-center justify-between pointer-events-auto">
         <div className={`backdrop-blur-md shadow-2xl rounded-xl px-4 py-2.5 flex items-center gap-4 transition-all ${
           isCharging
@@ -121,7 +119,6 @@ export function ManualDriveHUD() {
 
           <div className="h-6 w-px bg-slate-800" />
 
-          {/* Battery State */}
           <div className="flex items-center gap-2">
             <BatteryCharging className={`w-4 h-4 ${isCharging ? 'text-emerald-400 animate-pulse' : batteryPct < 25 ? 'text-amber-400' : 'text-emerald-400'}`} />
             <div>
@@ -136,7 +133,6 @@ export function ManualDriveHUD() {
 
           <div className="h-6 w-px bg-slate-800" />
 
-          {/* Return to Road Button */}
           <button
             onClick={() => {
               returnToRoad(vehicle.id);
@@ -149,7 +145,6 @@ export function ManualDriveHUD() {
             <span>RETURN TO ROAD (R)</span>
           </button>
 
-          {/* Exit Drive Button */}
           <button
             onClick={() => setManualDrive(false)}
             className="bg-red-950/80 hover:bg-red-900 border border-red-700/80 text-red-200 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-md active:scale-95"
@@ -159,7 +154,6 @@ export function ManualDriveHUD() {
           </button>
         </div>
 
-        {/* Ambient Station Telemetry Pill */}
         <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 px-4 py-2 rounded-xl text-xs flex items-center gap-3 shadow-lg">
           <div className="flex items-center gap-1.5 text-emerald-400 font-mono">
             <CheckCircle2 className="w-4 h-4" />
@@ -173,7 +167,6 @@ export function ManualDriveHUD() {
         </div>
       </div>
 
-      {/* Center: Station Proximity & Charger Interaction Prompt */}
       {nearestStationInfo && (
         <div className="self-center pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
           <div className={`backdrop-blur-md border px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 ${
@@ -235,11 +228,8 @@ export function ManualDriveHUD() {
         </div>
       )}
 
-      {/* Bottom Area: Digital Speedometer & Cockpit HUD (Left) + Keyboard Controls Guide (Right) */}
       <div className="flex items-end justify-between pointer-events-auto">
-        {/* Speedometer Cluster */}
         <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl flex items-center gap-5 min-w-[280px]">
-          {/* Circular / Digital Speed Display */}
           <div className="text-center">
             <div className="text-4xl font-extrabold text-white font-mono tracking-tighter leading-none drop-shadow">
               {speed}
@@ -251,9 +241,7 @@ export function ManualDriveHUD() {
 
           <div className="h-12 w-px bg-slate-800" />
 
-          {/* Gear and Status */}
           <div className="flex flex-col gap-1.5">
-            {/* Gear Selector */}
             <div className="flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-lg p-1 font-mono text-xs">
               {(['P', 'R', 'N', 'D'] as const).map((gear) => (
                 <span
@@ -274,7 +262,6 @@ export function ManualDriveHUD() {
               )}
             </div>
 
-            {/* Power Flow Gauge */}
             <div className="text-[10px] font-mono flex items-center justify-between text-slate-400">
               <span>POWER FLOW</span>
               <span className={`font-semibold ${
@@ -290,7 +277,6 @@ export function ManualDriveHUD() {
           </div>
         </div>
 
-        {/* Keyboard Controls Cheatsheet */}
         <div className="bg-[#111827]/95 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl text-xs text-slate-300">
           <div className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-semibold mb-2 flex items-center gap-1.5">
             <span>🎮 KEYBOARD CONTROLS</span>

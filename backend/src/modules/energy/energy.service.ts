@@ -141,7 +141,6 @@ export class EnergyService {
       }
     }
 
-    // Grid baseline calculation
     const baseGridMw = this.powerGrid.isSurgeActive ? 4.2 : 3.1;
     const dynamicTotalMw = Math.round((baseGridMw + currentStationsLoadKw / 1000) * 100) / 100;
     this.powerGrid.currentLoadMw = dynamicTotalMw;
@@ -213,7 +212,6 @@ export class EnergyService {
       }
     }
 
-    // Vehicle status breakdown
     const vehiclesCharging = vehicles.filter(v => v.status === 'CHARGING').length;
     const waitingVehicles = vehicles.filter(v => v.status === 'QUEUE' || v.status === 'ARRIVING').length;
     const serviceVehicles = vehicles.filter(v => v.status === 'UNDER_REPAIR' || v.status === 'SERVICE_REQUIRED' || v.status === 'FAULT').length;

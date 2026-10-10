@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-// We can check file sizes and GLB header
 const files = [
   'frontend/public/models/vehicles/cybertruck.glb',
   'frontend/public/models/vehicles/suv.glb',

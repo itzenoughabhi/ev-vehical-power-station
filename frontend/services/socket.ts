@@ -1,7 +1,16 @@
 import { io, Socket } from 'socket.io-client';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+const getBackendUrl = () => {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (typeof window !== 'undefined') {
+    if (window.location.port === '3000') return 'http://localhost:4000';
+    return window.location.origin;
+  }
+  return 'http://localhost:4000';
+};
+
+const BACKEND_URL = getBackendUrl();
 
 class SocketService {
   private socket: Socket | null = null;
@@ -74,7 +83,6 @@ class SocketService {
     this.socket.emit(event, data);
   }
 
-  // Interactive control actions
   public spawnVehicle() {
     this.emit('simulation:spawn');
   }
@@ -107,8 +115,8 @@ class SocketService {
     this.emit('simulation:return-to-road', { vehicleCode });
   }
 
-  public rerouteVehicle(vehicleId: string, targetStationId: string) {
-    this.emit('simulation:reroute', { vehicleId, targetStationId });
+  public rerouteVehicle(vehicleId: string, targetStationId: string, customWaypoints?: any[]) {
+    this.emit('simulation:reroute', { vehicleId, targetStationId, customWaypoints });
   }
 
   public repairFault(chargerCode?: string) {
@@ -143,12 +151,28 @@ class SocketService {
 
   public async queryAiAssistant(query: string): Promise<any> {
     try {
-      const res = await fetch(`${BACKEND_URL}/ai/query`, {
+      const primaryEndpoint = BACKEND_URL.startsWith('http') && !BACKEND_URL.includes(window?.location?.host || '')
+        ? `${BACKEND_URL}/api/ai/query`
+        : '/api/ai/query';
+
+      let res = await fetch(primaryEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
-      });
-      return await res.json();
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch('http://localhost:4000/api/ai/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        }).catch(() => null);
+      }
+
+      if (res && res.ok) {
+        return await res.json();
+      }
+      throw new Error(res ? `HTTP ${res.status}` : 'Fetch failed');
     } catch (err: any) {
       return {
         answer: `Offline AI Response: System is monitoring active grid telemetry. (Backend query error: ${err.message})`,

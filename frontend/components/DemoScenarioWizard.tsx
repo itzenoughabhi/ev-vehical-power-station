@@ -132,7 +132,6 @@ export function DemoScenarioWizard() {
   return (
     <div className="fixed bottom-20 left-64 z-40 w-96 select-none pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
       <div className="bg-[#111827]/98 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-blue-500/50 text-slate-200 font-sans text-xs ring-1 ring-blue-500/20">
-        {/* Header */}
         <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
@@ -148,7 +147,6 @@ export function DemoScenarioWizard() {
           </button>
         </div>
 
-        {/* Stepper Progress */}
         <div className="flex items-center justify-between py-2 border-b border-slate-800/60 font-mono text-[10px]">
           <span className="text-blue-400 font-bold">
             STEP {current.step} OF {scenarioSteps.length}
@@ -158,7 +156,6 @@ export function DemoScenarioWizard() {
           </span>
         </div>
 
-        {/* Step Content */}
         <div className="py-3">
           <h4 className="text-xs font-bold text-white mb-1">
             {current.title}
@@ -168,7 +165,6 @@ export function DemoScenarioWizard() {
           </p>
         </div>
 
-        {/* Action Controls */}
         <div className="flex items-center gap-2 pt-2 border-t border-slate-800">
           <button
             onClick={handleNext}
