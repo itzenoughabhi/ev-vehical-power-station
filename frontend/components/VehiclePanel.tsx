@@ -16,18 +16,33 @@ import {
   Play, 
   Pause, 
   Home, 
-  AlertTriangle 
+  AlertTriangle,
+  Minus,
+  Plus,
+  Sliders
 } from 'lucide-react';
 
 export function VehiclePanel() {
   const selectedVehicleId = useDigitalTwinStore((s) => (s.selectedObject?.type === 'vehicle' ? s.selectedObject.id : null));
-  const vehicle = useDigitalTwinStore((s) => (selectedVehicleId ? s.vehicles.find((v) => v.id === selectedVehicleId) : null));
+  const vehicle = useDigitalTwinStore((s) => 
+    selectedVehicleId && Array.isArray(s.vehicles) 
+      ? s.vehicles.find((v) => v.id === selectedVehicleId || v.code.toLowerCase() === selectedVehicleId.toLowerCase()) || null 
+      : null
+  );
   const stations = useDigitalTwinStore((s) => s.stations);
   const clearSelection = useDigitalTwinStore((s) => s.clearSelection);
   const trackingVehicleId = useDigitalTwinStore((s) => s.trackingVehicleId);
   const toggleTrackVehicle = useDigitalTwinStore((s) => s.toggleTrackVehicle);
   const updateVehicle = useDigitalTwinStore((s) => s.updateVehicle);
+  const setVehicleBatteryStore = useDigitalTwinStore((s) => s.setVehicleBattery);
   const [isMargdarshakOpen, setIsMargdarshakOpen] = useState(false);
+
+  const handleBatteryChange = (newPct: number) => {
+    if (!vehicle) return;
+    const clamped = Math.max(0, Math.min(100, Math.round(newPct)));
+    setVehicleBatteryStore(vehicle.id, clamped);
+    socketService.setVehicleBattery(vehicle.id, clamped);
+  };
 
   if (!vehicle) {
     return null;
@@ -36,7 +51,31 @@ export function VehiclePanel() {
   const destinationStation = stations.find((s) => s.id === vehicle.destinationStationId);
   const isTracking = trackingVehicleId === vehicle.id;
 
+  const batteryPct = Math.round(vehicle.currentBatteryPct);
+  const isZeroBattery = batteryPct <= 0;
+  const isStranded = isZeroBattery || vehicle.status === 'STRANDED';
+  const isBeingTowed = vehicle.status === 'BEING_TOWED' || vehicle.trafficState === 'BEING_TOWED';
+  const isLowBattery = batteryPct <= 20;
+  const isCriticalBattery = batteryPct <= 10;
+  const isOverheating = (vehicle.motorTemperatureC ?? 67) > 85;
+  const isBatteryHot = (vehicle.batteryTemperatureC ?? 31) > 40;
+
+  const isCharging = vehicle.status === 'CHARGING';
+  const targetPct = vehicle.targetBatteryPct || 85;
+  const capacityKwh = vehicle.batteryCapacityKwh || (vehicle.model === 'Commercial EV Van' ? 80 : 50);
+  const remainingPctToTarget = Math.max(0, targetPct - batteryPct);
+  const remainingPctToFull = Math.max(0, 100 - batteryPct);
+  const activePowerKw = isCharging ? (vehicle.chargingRateKw || 120) : 150;
+  const kwhToTarget = (remainingPctToTarget / 100) * capacityKwh;
+  const kwhToFull = (remainingPctToFull / 100) * capacityKwh;
+  const minutesToTarget = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToTarget / activePowerKw) * 60)) : 0;
+  const minutesToFull = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToFull / activePowerKw) * 60)) : 0;
+
   const formatStatus = (st: string) => {
+    if (isBeingTowed || st === 'BEING_TOWED') return '🛻 BEING TOWED TO STATION';
+    if (isStranded || st === 'STRANDED') return '🛑 STRANDED (0% BATTERY)';
+    if (isCriticalBattery && (st === 'EN_ROUTE' || st === 'LOW_BATTERY')) return `🚨 CRITICAL BATTERY (${batteryPct}%)`;
+    if (isLowBattery && (st === 'EN_ROUTE' || st === 'LOW_BATTERY')) return '⚠️ LOW BATTERY • EN ROUTE';
     switch (st) {
       case 'EN_ROUTE': return '● EN ROUTE';
       case 'PAUSED': return '⏸ PAUSED';
@@ -55,22 +94,18 @@ export function VehiclePanel() {
     }
   };
 
-  const batteryPct = Math.round(vehicle.currentBatteryPct);
-  const isOverheating = (vehicle.motorTemperatureC ?? 67) > 85;
-  const isBatteryHot = (vehicle.batteryTemperatureC ?? 31) > 40;
-
-  const isCharging = vehicle.status === 'CHARGING';
-  const targetPct = vehicle.targetBatteryPct || 85;
-  const capacityKwh = vehicle.batteryCapacityKwh || (vehicle.model === 'Commercial EV Van' ? 80 : 50);
-  const remainingPctToTarget = Math.max(0, targetPct - batteryPct);
-  const remainingPctToFull = Math.max(0, 100 - batteryPct);
-  const activePowerKw = isCharging ? (vehicle.chargingRateKw || 120) : 150;
-  const kwhToTarget = (remainingPctToTarget / 100) * capacityKwh;
-  const kwhToFull = (remainingPctToFull / 100) * capacityKwh;
-  const minutesToTarget = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToTarget / activePowerKw) * 60)) : 0;
-  const minutesToFull = activePowerKw > 0 ? Math.max(1, Math.ceil((kwhToFull / activePowerKw) * 60)) : 0;
+  const handleTowVehicle = () => {
+    socketService.towVehicle(vehicle.id);
+    updateVehicle(vehicle.id, {
+      status: 'BEING_TOWED',
+      trafficState: 'BEING_TOWED',
+      speed: 0,
+      currentLocationName: 'Rescue tow car dispatched to hook up & tow vehicle',
+    });
+  };
 
   const handleStart = () => {
+    if (isStranded) return;
     socketService.emit('vehicle:update', { id: vehicle.id, speed: 42, status: 'EN_ROUTE' });
     updateVehicle(vehicle.id, {
       speed: 42,
@@ -169,7 +204,17 @@ export function VehiclePanel() {
                 </span>
               </div>
               <p className={`text-[11px] font-bold ${
-                isOverheating ? 'text-red-600' : vehicle.status === 'PAUSED' ? 'text-amber-600' : vehicle.status === 'CHARGING' ? 'text-emerald-600' : 'text-blue-600'
+                isOverheating 
+                  ? 'text-red-600' 
+                  : isCriticalBattery 
+                  ? 'text-red-600 animate-pulse' 
+                  : isLowBattery 
+                  ? 'text-amber-600 font-bold' 
+                  : vehicle.status === 'PAUSED' 
+                  ? 'text-amber-600' 
+                  : vehicle.status === 'CHARGING' 
+                  ? 'text-emerald-600' 
+                  : 'text-blue-600'
               }`}>
                 {formatStatus(vehicle.status)}
               </p>
@@ -183,25 +228,231 @@ export function VehiclePanel() {
           </button>
         </div>
 
-        <div className="my-2.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl">
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-              <BatteryCharging className="w-3.5 h-3.5 text-blue-600" />
-              <span>BATTERY CAPACITY</span>
+        {/* Stranded or Being Towed Emergency Banner */}
+        {(isStranded || isBeingTowed) ? (
+          <div className={`my-2 p-3 rounded-xl border flex flex-col gap-2 shadow-sm transition-all ${
+            isBeingTowed 
+              ? 'bg-amber-500/10 border-amber-400 text-amber-900 ring-2 ring-amber-300' 
+              : 'bg-red-50 border-red-400 text-red-900 ring-2 ring-red-400/80'
+          }`}>
+            <div className="flex items-start gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                isBeingTowed ? 'bg-amber-500 text-white animate-pulse' : 'bg-red-600 text-white'
+              }`}>
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-[11px] uppercase tracking-wide flex items-center justify-between">
+                  <span>{isBeingTowed ? '🛻 TOW TRUCK DISPATCHED' : '🚨 0% BATTERY — STRANDED'}</span>
+                  <span className="font-mono bg-red-600 text-white px-1.5 py-0.2 rounded text-[10px] font-bold">
+                    0% SOC
+                  </span>
+                </div>
+                <div className="text-[10px] mt-0.5 leading-tight text-slate-700">
+                  {isBeingTowed 
+                    ? 'A fleet rescue vehicle is en route to tow this vehicle to the nearest charging station.' 
+                    : 'Battery completely drained (0%). Vehicle is stopped roadside. Request a tow to the nearest station.'}
+                </div>
+              </div>
+            </div>
+
+            {!isBeingTowed && (
+              <button
+                onClick={handleTowVehicle}
+                className="w-full mt-1 py-2 px-3 bg-gradient-to-r from-red-600 via-amber-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer animate-pulse"
+              >
+                <Truck className="w-4 h-4" />
+                <span>TOW CAR TO NEAREST STATION</span>
+              </button>
+            )}
+          </div>
+        ) : isLowBattery && (
+          <div className={`my-2 p-2.5 rounded-xl border flex items-center gap-2.5 shadow-sm transition-all ${
+            isCriticalBattery 
+              ? 'bg-red-50 border-red-300 text-red-800 ring-1 ring-red-300' 
+              : 'bg-amber-50 border-amber-300 text-amber-800'
+          }`}>
+            <AlertTriangle className={`w-4 h-4 shrink-0 ${isCriticalBattery ? 'text-red-600 animate-bounce' : 'text-amber-600'}`} />
+            <div>
+              <div className="font-bold text-[11px] uppercase tracking-wide flex items-center gap-1.5">
+                <span>{isCriticalBattery ? '🚨 CRITICAL LOW BATTERY' : '⚠️ LOW BATTERY WARNING'}</span>
+                <span className="font-mono bg-white/80 px-1 py-0.2 rounded border text-[10px]">
+                  {batteryPct}%
+                </span>
+              </div>
+              <div className="text-[10px] mt-0.5 leading-tight">
+                {isCriticalBattery 
+                  ? `Only ${vehicle.estimatedRangeKm ?? 13} km reserve remaining! Immediate charging required.` 
+                  : `Low SOC reserve (${vehicle.estimatedRangeKm ?? 35} km). Diverting to charging station advised.`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VEHICLE BATTERY MANAGEMENT CONTROLS */}
+        <div className="my-2 p-3 bg-gradient-to-b from-slate-50 to-slate-100/90 border border-slate-200 rounded-xl shadow-inner">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="flex items-center gap-1.5 font-bold text-slate-800 tracking-tight">
+              <BatteryCharging className={`w-4 h-4 ${
+                isCriticalBattery || isStranded 
+                  ? 'text-red-600 animate-pulse' 
+                  : isLowBattery 
+                  ? 'text-amber-600' 
+                  : 'text-emerald-600'
+              }`} />
+              <span>BATTERY MANAGEMENT</span>
             </span>
-            <span className="font-bold text-slate-900 font-mono">{batteryPct}%</span>
+            <div className="flex items-center gap-1.5">
+              <span className={`px-2 py-0.5 rounded-full font-bold font-mono text-[11px] shadow-sm transition-all ${
+                isStranded 
+                  ? 'bg-red-600 text-white animate-pulse' 
+                  : isCriticalBattery 
+                  ? 'bg-red-500 text-white animate-pulse' 
+                  : isLowBattery 
+                  ? 'bg-amber-500 text-white' 
+                  : batteryPct >= 80 
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-blue-600 text-white'
+              }`}>
+                {batteryPct}% SOC
+              </span>
+            </div>
           </div>
-          <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                batteryPct < 25 ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${batteryPct}%` }}
-            />
+
+          {/* Interactive Range Slider */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono font-medium">
+              <span>0% (STRANDED)</span>
+              <span className="text-slate-700 font-bold">{((batteryPct / 100) * capacityKwh).toFixed(1)} / {capacityKwh} kWh</span>
+              <span>100% (FULL)</span>
+            </div>
+
+            <div className="relative flex items-center">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={batteryPct}
+                onChange={(e) => handleBatteryChange(Number(e.target.value))}
+                className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                style={{
+                  background: `linear-gradient(to right, ${
+                    batteryPct <= 10 ? '#dc2626' : batteryPct <= 20 ? '#f59e0b' : '#10b981'
+                  } 0%, ${
+                    batteryPct <= 10 ? '#ef4444' : batteryPct <= 20 ? '#fbbf24' : '#34d399'
+                  } ${batteryPct}%, #e2e8f0 ${batteryPct}%, #e2e8f0 100%)`
+                }}
+              />
+            </div>
           </div>
-          <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1 font-mono">
-            <span>ESTIMATED RANGE: <strong className="text-slate-800">{vehicle.estimatedRangeKm ?? 238} km</strong></span>
-            <span>HEALTH: <strong className={vehicle.vehicleHealth === 'CRITICAL' ? 'text-red-600' : 'text-emerald-600'}>{vehicle.vehicleHealth ?? 'GOOD'}</strong></span>
+
+          {/* Quick Presets & Steppers */}
+          <div className="mt-2.5 pt-2 border-t border-slate-200/80">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <button
+                type="button"
+                onClick={() => handleBatteryChange(batteryPct - 5)}
+                disabled={batteryPct <= 0}
+                className="px-2 py-1 bg-white hover:bg-slate-50 active:bg-slate-100 disabled:opacity-40 text-slate-700 border border-slate-200 rounded-lg font-mono text-[10px] font-bold shadow-xs flex items-center gap-0.5 cursor-pointer"
+                title="Decrease 5%"
+              >
+                <Minus className="w-3 h-3" /> 5%
+              </button>
+
+              {/* Preset Buttons */}
+              <div className="flex items-center gap-1 flex-1 justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleBatteryChange(0)}
+                  className={`px-1.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
+                    batteryPct === 0 
+                      ? 'bg-red-600 text-white border-red-700 shadow-sm ring-2 ring-red-300' 
+                      : 'bg-white hover:bg-red-50 text-red-700 border-red-200'
+                  }`}
+                  title="Simulate 0% Battery (Stranded Vehicle with Tow Option)"
+                >
+                  0%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBatteryChange(15)}
+                  className={`px-1.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
+                    batteryPct === 15 
+                      ? 'bg-amber-500 text-white border-amber-600 shadow-sm ring-2 ring-amber-300' 
+                      : 'bg-white hover:bg-amber-50 text-amber-700 border-amber-200'
+                  }`}
+                  title="Simulate 15% Battery (Low Battery Warning & Auto-Diversion)"
+                >
+                  15%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBatteryChange(50)}
+                  className={`px-1.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
+                    batteryPct === 50 
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-sm ring-2 ring-blue-300' 
+                      : 'bg-white hover:bg-blue-50 text-blue-700 border-blue-200'
+                  }`}
+                  title="Set 50% Battery (Normal Cruising)"
+                >
+                  50%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBatteryChange(80)}
+                  className={`px-1.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
+                    batteryPct === 80 
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-300' 
+                      : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}
+                  title="Set 80% Battery (Optimal SOC)"
+                >
+                  80%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBatteryChange(100)}
+                  className={`px-1.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all cursor-pointer border ${
+                    batteryPct === 100 
+                      ? 'bg-emerald-700 text-white border-emerald-800 shadow-sm ring-2 ring-emerald-300' 
+                      : 'bg-white hover:bg-emerald-50 text-emerald-800 border-emerald-200'
+                  }`}
+                  title="Set 100% Full Capacity"
+                >
+                  100%
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleBatteryChange(batteryPct + 5)}
+                disabled={batteryPct >= 100}
+                className="px-2 py-1 bg-white hover:bg-slate-50 active:bg-slate-100 disabled:opacity-40 text-slate-700 border border-slate-200 rounded-lg font-mono text-[10px] font-bold shadow-xs flex items-center gap-0.5 cursor-pointer"
+                title="Increase 5%"
+              >
+                +5% <Plus className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono pt-1">
+              <span>RANGE: <strong className={isCriticalBattery || isStranded ? 'text-red-600 font-bold' : isLowBattery ? 'text-amber-700 font-bold' : 'text-slate-800'}>{vehicle.estimatedRangeKm ?? Math.round((batteryPct / 100) * 380)} km</strong></span>
+              <span>STATE: <strong className={
+                vehicle.vehicleHealth === 'CRITICAL' || isStranded || isCriticalBattery 
+                  ? 'text-red-600 font-bold' 
+                  : isLowBattery 
+                  ? 'text-amber-600 font-bold' 
+                  : 'text-emerald-600 font-bold'
+              }>
+                {isStranded 
+                  ? 'STRANDED (0%)' 
+                  : isCriticalBattery 
+                  ? 'CRITICAL SOC' 
+                  : isLowBattery 
+                  ? 'LOW SOC WARNING' 
+                  : 'HEALTHY'}
+              </strong></span>
+            </div>
           </div>
         </div>
 
@@ -314,6 +565,24 @@ export function VehiclePanel() {
           <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1.5 font-mono">
             Autonomous Fleet Controls
           </span>
+
+          {isStranded && !isBeingTowed && (
+            <button
+              onClick={handleTowVehicle}
+              className="w-full mb-2 py-2 px-3 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-700 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 animate-pulse cursor-pointer"
+            >
+              <Truck className="w-4 h-4" />
+              <span>TOW CAR TO NEAREST STATION</span>
+            </button>
+          )}
+
+          {isBeingTowed && (
+            <div className="w-full mb-2 py-1.5 px-3 bg-amber-500/15 border border-amber-400 text-amber-900 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5">
+              <Truck className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+              <span>BEING TOWED TO NEAREST STATION</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-1.5">
             <button
               onClick={handleStart}

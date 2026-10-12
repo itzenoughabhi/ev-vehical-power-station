@@ -131,58 +131,36 @@ const WalkingPedestrian = React.memo(function WalkingPedestrian({ path, p1, p2, 
 
 export function CityProps() {
   const electricityPoles: PropDef[] = useMemo(() => [
-    { path: '/models/props/electricity-pole.glb', pos: [54, 0, -28], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [76, 0, -30], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [12, 0, 68], rot: [0, 0.25, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [48, 0, 86], rot: [0, 0.2, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [16, 0, -64], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [18, 0, -84], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [-72, 0, -40], rot: [0, 0.35, 0], scale: 16.0, castShadow: false },
-    { path: '/models/props/electricity-pole.glb', pos: [-88, 0, -44], rot: [0, 0.35, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [-52, 0, -85], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [-72, 0, -85], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [2, 0, 72], rot: [0, 0.25, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [52, 0, 96], rot: [0, 0.2, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [16, 0, -85], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [18, 0, -105], rot: [0, 1.5, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [-76, 0, -46], rot: [0, 0.35, 0], scale: 16.0, castShadow: false },
+    { path: '/models/props/electricity-pole.glb', pos: [-94, 0, -48], rot: [0, 0.35, 0], scale: 16.0, castShadow: false },
   ], []);
 
-  const streetLamps: PropDef[] = useMemo(() => [
-    { path: '/models/props/light-curved.glb', pos: [-13, 0, 6], rot: [0, -Math.PI / 4, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [8, 0, -6], rot: [0, Math.PI / 1.5, 0], scale: 8.5 },
-
-    { path: '/models/props/light-curved.glb', pos: [-1, 0, -24], rot: [0, Math.PI / 2, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [25, 0, -28], rot: [0, Math.PI / 2, 0], scale: 8.5 },
-
-    { path: '/models/props/light-curved.glb', pos: [38, 0, 14], rot: [0, -Math.PI / 2, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [36, 0, 36], rot: [0, -Math.PI / 2, 0], scale: 8.5 },
-
-    { path: '/models/props/light-curved.glb', pos: [36, 0, 60], rot: [0, -Math.PI / 2, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [40, 0, 80], rot: [0, -Math.PI / 2, 0], scale: 8.5 },
-
-    { path: '/models/props/light-curved.glb', pos: [-24, 0, 2], rot: [0, Math.PI, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [-42, 0, -8], rot: [0, Math.PI, 0], scale: 8.5 },
-    { path: '/models/props/light-curved.glb', pos: [-64, 0, -14], rot: [0, Math.PI, 0], scale: 8.5 },
-  ], []);
+  // Roadside Municipal streetlights are now managed dynamically in RoadNetwork with strict curb clearance
+  const streetLamps: PropDef[] = useMemo(() => [], []);
 
   const highwaySigns: PropDef[] = useMemo(() => [
-    { path: '/models/props/sign-highway.glb', pos: [35, 0, 34], rot: [0, -0.6, 0], scale: 7.5, castShadow: false },
-    { path: '/models/props/sign-highway.glb', pos: [-32, 0, -2], rot: [0, -0.3, 0], scale: 7.5, castShadow: false },
-    { path: '/models/props/sign-highway.glb', pos: [48, 0, -8], rot: [0, 0, 0], scale: 7.5, castShadow: false },
-    { path: '/models/props/sign-highway.glb', pos: [38, 0, 72], rot: [0, -0.4, 0], scale: 7.5, castShadow: false },
+    { path: '/models/props/sign-highway.glb', pos: [45, 0, 34], rot: [0, -0.6, 0], scale: 7.5, castShadow: false },
+    { path: '/models/props/sign-highway.glb', pos: [-36, 0, 12], rot: [0, -0.3, 0], scale: 7.5, castShadow: false },
+    { path: '/models/props/sign-highway.glb', pos: [58, 0, -8], rot: [0, 0, 0], scale: 7.5, castShadow: false },
+    { path: '/models/props/sign-highway.glb', pos: [48, 0, 78], rot: [0, -0.4, 0], scale: 7.5, castShadow: false },
   ], []);
 
   const safetyProps: PropDef[] = useMemo(() => [
-    { path: '/models/props/construction-barrier.glb', pos: [-24, 0, 59], rot: [0, 0.3, 0], scale: 0.5 },
-    { path: '/models/props/construction-barrier.glb', pos: [-32, 0, 59], rot: [0, -0.3, 0], scale: 0.5 },
-    { path: '/models/props/construction-cone.glb', pos: [-23, 0, 60], rot: [0, 0, 0], scale: 0.35 },
-    { path: '/models/props/construction-cone.glb', pos: [-25, 0, 60.5], rot: [0, 0, 0], scale: 0.35 },
-    { path: '/models/props/construction-cone.glb', pos: [-27, 0, 60.8], rot: [0, 0, 0], scale: 0.35 },
+    // Relocated inside industrial factory compound away from public roadway
+    { path: '/models/props/construction-barrier.glb', pos: [-55, 0, 75], rot: [0, 0.3, 0], scale: 0.5 },
+    { path: '/models/props/construction-cone.glb', pos: [-53, 0, 76], rot: [0, 0, 0], scale: 0.35 },
   ], []);
 
   const streetFurniture: PropDef[] = useMemo(() => [
-    { path: '/models/props/dumpster.glb', pos: [-46, 0, 32], rot: [0, 0.2, 0], scale: 4.2 },
-    { path: '/models/props/dumpster.glb', pos: [-44, 0, -30], rot: [0, 1.2, 0], scale: 4.2 },
-    { path: '/models/city/bus_stop.glb', pos: [18, 0, -24], rot: [0, Math.PI / 2, 0], scale: 0.10 },
-    { path: '/models/city/bench.glb', pos: [16, 0, -22], rot: [0, Math.PI / 2, 0], scale: 0.50 },
-    { path: '/models/city/billboard.glb', pos: [48, 0, -26], rot: [0, Math.PI / 2, 0], scale: 0.018 },
-    { path: '/models/city/billboard.glb', pos: [14, 0, 72], rot: [0, -0.4, 0], scale: 0.018 },
-    { path: '/models/city/fence.glb', pos: [-6, 0, -18], rot: [0, 0, 0], scale: 0.20 },
-    { path: '/models/city/fence.glb', pos: [-2, 0, -18], rot: [0, 0, 0], scale: 0.20 },
+    { path: '/models/props/dumpster.glb', pos: [-58, 0, 32], rot: [0, 0.2, 0], scale: 4.2 },
+    { path: '/models/city/bus_stop.glb', pos: [-4, 0, -28], rot: [0, Math.PI / 2, 0], scale: 0.10 },
+    { path: '/models/city/billboard.glb', pos: [18, 0, 78], rot: [0, -0.4, 0], scale: 0.018 },
   ], []);
 
   const walkingPedestrians: PedestrianDef[] = useMemo(() => [

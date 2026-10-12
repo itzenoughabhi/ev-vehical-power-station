@@ -122,7 +122,7 @@ const FallbackProceduralCar = React.memo(function FallbackProceduralCar({ isSele
 
 const SelectedVehicleBadge = React.memo(function SelectedVehicleBadge({ vehicleId }: { vehicleId: string }) {
   const selectVehicle = useDigitalTwinStore((s) => s.selectVehicle);
-  const liveVehicle = useDigitalTwinStore((s) => s.vehicles.find((v) => v.id === vehicleId));
+  const liveVehicle = useDigitalTwinStore((s) => Array.isArray(s.vehicles) ? s.vehicles.find((v) => v.id === vehicleId) : null);
   if (!liveVehicle) return null;
 
   const hasFault = liveVehicle.status === 'FAULT' || liveVehicle.status === 'SERVICE_REQUIRED' || liveVehicle.vehicleHealth === 'CRITICAL';
@@ -130,16 +130,24 @@ const SelectedVehicleBadge = React.memo(function SelectedVehicleBadge({ vehicleI
   const isCharging = liveVehicle.status === 'CHARGING';
   const isQueue = liveVehicle.status === 'QUEUE';
 
+  const batteryPct = Math.round(liveVehicle.currentBatteryPct);
+  const isStranded = liveVehicle.status === 'STRANDED' || batteryPct <= 0;
+  const isBeingTowed = liveVehicle.status === 'BEING_TOWED' || liveVehicle.trafficState === 'BEING_TOWED';
+  const isTowing = liveVehicle.trafficState === 'TOWING';
+  const isLowBattery = batteryPct <= 20;
+  const isCriticalBattery = batteryPct <= 10;
+
   const getStatusIcon = () => {
+    if (isStranded) return '🛑';
+    if (isBeingTowed || isTowing) return '🛻';
     if (hasFault) return '🚨';
     if (isUnderRepair) return '🔧';
     if (isCharging) return '⚡';
     if (isQueue) return '⏳';
+    if (isCriticalBattery || isLowBattery) return '⚠️';
     if (liveVehicle.status === 'ENTERING_STATION' || liveVehicle.status === 'REVERSE_PARKING') return '🅿️';
     return '🚗';
   };
-
-  const batteryPct = Math.round(liveVehicle.currentBatteryPct);
 
   return (
     <Html position={[0, 1.85, 0]} center distanceFactor={26} zIndexRange={[100, 0]}>
@@ -149,17 +157,30 @@ const SelectedVehicleBadge = React.memo(function SelectedVehicleBadge({ vehicleI
           selectVehicle(vehicleId);
         }}
         className={`cursor-pointer px-2.5 py-0.5 rounded-full border transition-all select-none text-[10px] font-medium flex items-center gap-1 shadow-md ${
-          hasFault
+          isStranded
+            ? 'bg-red-700 text-white border-red-500 shadow-md ring-2 ring-red-400 animate-pulse'
+            : isBeingTowed || isTowing
+            ? 'bg-amber-600 text-white border-amber-400 ring-2 ring-amber-300 animate-pulse'
+            : hasFault || isCriticalBattery
             ? 'bg-red-600 text-white border-red-500 shadow-md ring-2 ring-red-300 animate-pulse'
-            : isUnderRepair
+            : isUnderRepair || isLowBattery
             ? 'bg-amber-600 text-white border-amber-500 ring-2 ring-amber-300'
             : 'bg-blue-600 text-white border-blue-500 shadow-md ring-2 ring-blue-300'
         }`}
         style={{ whiteSpace: 'nowrap' }}
       >
         <span>{getStatusIcon()}</span>
-        <span className="font-semibold">{liveVehicle.code}</span>
-        <span className="text-[9px] font-mono text-emerald-400">
+        <span className="font-semibold">
+          {liveVehicle.code}
+          {isStranded ? ' (0% STRANDED)' : isBeingTowed ? ' (TOWED)' : isTowing ? ' (TOW TRUCK)' : ''}
+        </span>
+        <span className={`text-[9px] font-mono ${
+          isStranded || isCriticalBattery 
+            ? 'text-yellow-200 font-bold animate-pulse' 
+            : isLowBattery 
+            ? 'text-amber-100 font-bold' 
+            : 'text-emerald-400'
+        }`}>
           {batteryPct}%
         </span>
       </div>
@@ -259,6 +280,34 @@ const VehicleItem = React.memo(function VehicleItem({ vehicle }: { vehicle: Vehi
     let diff = target.heading - groupRef.current.rotation.y;
     diff = THREE.MathUtils.euclideanModulo(diff + Math.PI, Math.PI * 2) - Math.PI;
     groupRef.current.rotation.y += diff * factor;
+
+    // Visual Anti-Penetration: Prevents mesh overlapping only between same-direction vehicles in the same lane
+    // NEVER push oncoming vehicles in opposite lanes across the road divider!
+    const allVehs = useDigitalTwinStore.getState().vehicles || [];
+    for (let i = 0; i < allVehs.length; i++) {
+      const ov = allVehs[i];
+      if (!ov || ov.id === vehicle.id) continue;
+      const dx = groupRef.current.position.x - ov.position.x;
+      const dz = groupRef.current.position.z - ov.position.z;
+      const d = Math.hypot(dx, dz);
+
+      // Check alignment: if vehicles are oncoming (opposite directions across divider), do NOT push sideways!
+      const headingDot = Math.cos((vehicle.heading || 0) - (ov.heading || 0));
+      if (headingDot < -0.2) {
+        // Oncoming traffic in opposite lanes: strictly maintain lane trajectory without lateral deviation
+        continue;
+      }
+
+      // Only gently nudge same-direction vehicles if physical bounding boxes touch
+      const isBig = vehicle.model?.includes('Bus') || vehicle.model?.includes('Hauler');
+      const otherBig = ov.model?.includes('Bus') || ov.model?.includes('Hauler');
+      const minTouchGap = (isBig || otherBig) ? 3.8 : 2.2;
+      if (d < minTouchGap && d > 0.1) {
+        const push = (minTouchGap - d) * factor * 0.25;
+        groupRef.current.position.x += (dx / d) * push;
+        groupRef.current.position.z += (dz / d) * push;
+      }
+    }
   });
 
   const isCharging = vehicle.status === 'CHARGING';
@@ -266,29 +315,42 @@ const VehicleItem = React.memo(function VehicleItem({ vehicle }: { vehicle: Vehi
   const isUnderRepair = vehicle.status === 'UNDER_REPAIR';
   const isQueue = vehicle.status === 'QUEUE';
 
+  // Hook must ALWAYS be called unconditionally to preserve React hook ordering!
+  const towVehicle = useDigitalTwinStore((s) =>
+    vehicle.towedByVehicleId && Array.isArray(s.vehicles)
+      ? s.vehicles.find((v) => v.id === vehicle.towedByVehicleId) || null
+      : null
+  );
+
   const routePoints = useMemo(() => {
     if (
       !isSelected ||
       isCharging ||
       isQueue ||
       isUnderRepair ||
+      !vehicle ||
       vehicle.status === 'ARRIVING' ||
-      !vehicle.routeWaypoints ||
+      vehicle.status === 'STRANDED' ||
+      vehicle.status === 'BEING_TOWED' ||
+      !Array.isArray(vehicle.routeWaypoints) ||
       vehicle.routeWaypoints.length < 2
     ) {
       return null;
     }
-    const curX = groupRef.current ? groupRef.current.position.x : vehicle.position.x;
-    const curZ = groupRef.current ? groupRef.current.position.z : vehicle.position.z;
+    const curX = groupRef.current ? groupRef.current.position.x : vehicle.position?.x ?? 0;
+    const curZ = groupRef.current ? groupRef.current.position.z : vehicle.position?.z ?? 0;
     const pts: [number, number, number][] = [
       [curX, 0.12, curZ],
     ];
-    for (let i = vehicle.currentWaypointIndex; i < vehicle.routeWaypoints.length; i++) {
+    const startIndex = Math.max(0, Math.min(vehicle.routeWaypoints.length - 1, vehicle.currentWaypointIndex || 0));
+    for (let i = startIndex; i < vehicle.routeWaypoints.length; i++) {
       const wp = vehicle.routeWaypoints[i];
-      pts.push([wp.x, 0.12, wp.z]);
+      if (wp && typeof wp.x === 'number' && typeof wp.z === 'number') {
+        pts.push([wp.x, 0.12, wp.z]);
+      }
     }
-    return pts;
-  }, [isSelected, isCharging, isQueue, isUnderRepair, vehicle.status, vehicle.position, vehicle.routeWaypoints, vehicle.currentWaypointIndex]);
+    return pts.length > 1 ? pts : null;
+  }, [isSelected, isCharging, isQueue, isUnderRepair, vehicle?.status, vehicle?.position?.x, vehicle?.position?.z, vehicle?.routeWaypoints, vehicle?.currentWaypointIndex]);
 
   const getStatusIcon = () => {
     if (hasFault) return '🚨';
@@ -301,6 +363,17 @@ const VehicleItem = React.memo(function VehicleItem({ vehicle }: { vehicle: Vehi
 
   return (
     <>
+      {towVehicle && towVehicle.position && vehicle.position && (
+        <Line
+          points={[
+            [vehicle.position.x, 0.35, vehicle.position.z],
+            [towVehicle.position.x, 0.35, towVehicle.position.z],
+          ]}
+          color="#f59e0b"
+          lineWidth={3.5}
+        />
+      )}
+
       {routePoints && routePoints.length > 1 && (
         <Line
           points={routePoints}
@@ -345,13 +418,15 @@ const VehicleItem = React.memo(function VehicleItem({ vehicle }: { vehicle: Vehi
     prev.vehicle.status === next.vehicle.status &&
     prev.vehicle.model === next.vehicle.model &&
     prev.vehicle.vehicleHealth === next.vehicle.vehicleHealth &&
+    prev.vehicle.currentBatteryPct === next.vehicle.currentBatteryPct &&
+    prev.vehicle.towedByVehicleId === next.vehicle.towedByVehicleId &&
+    prev.vehicle.towingVehicleId === next.vehicle.towingVehicleId &&
     prev.vehicle.currentWaypointIndex === next.vehicle.currentWaypointIndex
   );
 });
 
 export function VehicleFleet() {
-  const vehicleRosterKey = useDigitalTwinStore((s) => s.vehicles.map((v) => `${v.id}:${v.status}`).join('|'));
-  const vehicles = useDigitalTwinStore.getState().vehicles;
+  const vehicles = useDigitalTwinStore((s) => s.vehicles) || [];
 
   return (
     <group name="VehicleFleet">

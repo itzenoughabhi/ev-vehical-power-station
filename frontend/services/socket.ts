@@ -99,6 +99,19 @@ class SocketService {
     this.emit('simulation:low-battery', { vehicleCode, pct });
   }
 
+  public setVehicleBattery(vehicleIdOrCode: string, batteryPct: number) {
+    const clamped = Math.max(0, Math.min(100, Math.round(batteryPct)));
+    this.emit('vehicle:set-battery', { id: vehicleIdOrCode, vehicleCode: vehicleIdOrCode, batteryPct: clamped });
+    // Also dispatch fallback REST call for robust dual-channel sync
+    try {
+      fetch('http://localhost:4000/api/simulation/vehicle-battery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vehicleId: vehicleIdOrCode, batteryPct: clamped }),
+      }).catch(() => {});
+    } catch {}
+  }
+
   public triggerEnergySurge(active: boolean = true) {
     this.emit('simulation:surge', { active });
   }
@@ -113,6 +126,10 @@ class SocketService {
 
   public returnToRoad(vehicleCode: string = 'EV-024') {
     this.emit('simulation:return-to-road', { vehicleCode });
+  }
+
+  public towVehicle(vehicleId: string) {
+    this.emit('vehicle:tow', { vehicleId });
   }
 
   public rerouteVehicle(vehicleId: string, targetStationId: string, customWaypoints?: any[]) {

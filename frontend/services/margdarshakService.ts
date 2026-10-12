@@ -21,6 +21,8 @@ export interface MargdarshakEdge {
 export interface MargdarshakRouteOption {
   type: 'TRAFFIC_FREE' | 'SHORTEST_DISTANCE' | 'MOST_TRAFFIC';
   title: string;
+  routeName: string;
+  highlightTag: string;
   badge: string;
   badgeColor: string;
   distanceKm: number;
@@ -47,78 +49,84 @@ export interface MargdarshakStationEvaluation {
 }
 
 export const MARGDARSHAK_ROAD_NODES: Record<string, MargdarshakNode> = {
-  P401_HIGHWAY: { id: 'P401_HIGHWAY', name: 'Palghar Highway Junction', x: 48, z: 190, neighbors: ['PALGHAR_NORTH', 'P401_ENTRANCE', 'PALGHAR_MANOR_LINK_1', 'SHIRGAON_LINK_3'] },
-  PALGHAR_NORTH: { id: 'PALGHAR_NORTH', name: 'Palghar North Highway Corridor', x: 42, z: 170, neighbors: ['P401_HIGHWAY', 'UMROLI_JCT'] },
-  UMROLI_JCT: { id: 'UMROLI_JCT', name: 'Umroli Regional Interchange', x: 34, z: 135, neighbors: ['PALGHAR_NORTH', 'BETEGAON_MID', 'SHIRGAON_PT2'] },
-  BETEGAON_MID: { id: 'BETEGAON_MID', name: 'Betegaon Mid Highway Corridor', x: 28, z: 95, neighbors: ['UMROLI_JCT', 'D305_JUNCTION'] },
-  D305_JUNCTION: { id: 'D305_JUNCTION', name: 'Highway D305 Access Junction', x: 26, z: 65, neighbors: ['BETEGAON_MID', 'BETEGAON_D305_HWY', 'D305_ENTRANCE'] },
-  BETEGAON_D305_HWY: { id: 'BETEGAON_D305_HWY', name: 'Highway near D305 Hub', x: 22, z: 48, neighbors: ['D305_JUNCTION', 'SARAVALI_MID'] },
-  SARAVALI_MID: { id: 'SARAVALI_MID', name: 'Saravali Highway Junction', x: 16, z: 28, neighbors: ['BETEGAON_D305_HWY', 'SARAVALI_JCT', 'BETEGAON_HOME_024'] },
-  SARAVALI_JCT: { id: 'SARAVALI_JCT', name: 'Saravali / MIDC Connector', x: 5, z: 10, neighbors: ['SARAVALI_MID', 'MIDC_BORDER', 'CENTRAL_ROUNDABOUT'] },
-  CENTRAL_ROUNDABOUT: { id: 'CENTRAL_ROUNDABOUT', name: 'Central Highway Junction', x: 0, z: -2, neighbors: ['SARAVALI_JCT', 'BOISAR_TOWN', 'MIDC_BRANCH', 'BOISAR_SPUR_START'] },
-  BOISAR_TOWN: { id: 'BOISAR_TOWN', name: 'Boisar Town Center', x: 6, z: -18, neighbors: ['CENTRAL_ROUNDABOUT', 'BOISAR_EAST', 'MANOR_APPROACH_1'] },
-  BOISAR_EAST: { id: 'BOISAR_EAST', name: 'Boisar East Railway Approach', x: 18, z: -32, neighbors: ['BOISAR_TOWN', 'NORTH_OUTER', 'BETEGAON_GREEN', 'SUBSTATION_RECONNECT'] },
-  NORTH_OUTER: { id: 'NORTH_OUTER', name: 'Outer Dahanu Corridor', x: 28, z: -55, neighbors: ['BOISAR_EAST', 'VANGAON_JCT'] },
-  VANGAON_JCT: { id: 'VANGAON_JCT', name: 'Vangaon Highway Junction', x: 30, z: -110, neighbors: ['NORTH_OUTER', 'DAHANU_MID'] },
-  DAHANU_MID: { id: 'DAHANU_MID', name: 'Dahanu Agro Corridor Midpoint', x: 31, z: -165, neighbors: ['VANGAON_JCT', 'D701_HIGHWAY'] },
-  D701_HIGHWAY: { id: 'D701_HIGHWAY', name: 'Dahanu Highway near D701', x: 32, z: -220, neighbors: ['DAHANU_MID', 'D701_ENTRANCE'] },
+  P401_HIGHWAY: { id: 'P401_HIGHWAY', name: 'Palghar Highway Junction', x: 50, z: 215, neighbors: ['PALGHAR_NORTH', 'P401_ENTRANCE', 'PALGHAR_MANOR_LINK_1', 'SHIRGAON_LINK_3'] },
+  PALGHAR_NORTH: { id: 'PALGHAR_NORTH', name: 'Palghar North Highway Corridor', x: 45, z: 185, neighbors: ['P401_HIGHWAY', 'UMROLI_JCT'] },
+  UMROLI_JCT: { id: 'UMROLI_JCT', name: 'Umroli Regional Interchange', x: 40, z: 155, neighbors: ['PALGHAR_NORTH', 'BETEGAON_MID', 'SHIRGAON_PT2'] },
+  BETEGAON_MID: { id: 'BETEGAON_MID', name: 'Betegaon Mid Highway Corridor', x: 36, z: 115, neighbors: ['UMROLI_JCT', 'D305_JUNCTION'] },
+  D305_JUNCTION: { id: 'D305_JUNCTION', name: 'Highway D305 Access Junction', x: 32, z: 75, neighbors: ['BETEGAON_MID', 'SARAVALI_MID', 'D305_ENTRANCE'] },
+  SARAVALI_MID: { id: 'SARAVALI_MID', name: 'Saravali Mid Highway Corridor', x: 23, z: 52, neighbors: ['D305_JUNCTION', 'SARAVALI_JCT'] },
+  SARAVALI_JCT: { id: 'SARAVALI_JCT', name: 'Saravali / MIDC Connector', x: 14, z: 30, neighbors: ['SARAVALI_MID', 'MIDC_BORDER', 'CENTRAL_ROUNDABOUT', 'BETEGAON_HOME_024'] },
+  CENTRAL_ROUNDABOUT: { id: 'CENTRAL_ROUNDABOUT', name: 'Central Highway 4-Way Interchange', x: 0, z: 0, neighbors: ['SARAVALI_JCT', 'BOISAR_TOWN', 'MIDC_BRANCH'] },
+  BOISAR_TOWN: { id: 'BOISAR_TOWN', name: 'Boisar Town Center', x: 12, z: -18, neighbors: ['CENTRAL_ROUNDABOUT', 'BOISAR_EAST', 'MANOR_APPROACH_1', 'BETEGAON_GREEN'] },
+  BOISAR_EAST: { id: 'BOISAR_EAST', name: 'Boisar East Bypass Corridor', x: 4, z: -40, neighbors: ['BOISAR_TOWN', 'NORTH_OUTER', 'A102_ENTRANCE'] },
+  NORTH_OUTER: { id: 'NORTH_OUTER', name: 'Outer Dahanu/Manor Corridor', x: 32, z: -60, neighbors: ['BOISAR_EAST', 'VANGAON_JCT', 'SUBSTATION_RECONNECT'] },
 
-  SHIRGAON_PT2: { id: 'SHIRGAON_PT2', name: 'Shirgaon East Palms', x: 12, z: 150, neighbors: ['UMROLI_JCT', 'SHIRGAON_PT3'] },
-  SHIRGAON_PT3: { id: 'SHIRGAON_PT3', name: 'Shirgaon Rural Enclave', x: -15, z: 170, neighbors: ['SHIRGAON_PT2', 'SHIRGAON_PT4'] },
-  SHIRGAON_PT4: { id: 'SHIRGAON_PT4', name: 'Shirgaon Historic Fort Approach', x: -42, z: 192, neighbors: ['SHIRGAON_PT3', 'SHIRGAON_COAST_HWY'] },
-  SHIRGAON_COAST_HWY: { id: 'SHIRGAON_COAST_HWY', name: 'Shirgaon Beach Road', x: -65, z: 205, neighbors: ['SHIRGAON_PT4', 'S801_ENTRANCE', 'SHIRGAON_LINK_1'] },
-  SHIRGAON_LINK_1: { id: 'SHIRGAON_LINK_1', name: 'Shirgaon South Palms', x: -30, z: 203, neighbors: ['SHIRGAON_COAST_HWY', 'SHIRGAON_LINK_2'] },
-  SHIRGAON_LINK_2: { id: 'SHIRGAON_LINK_2', name: 'Shirgaon-Palghar Rural Cross', x: -5, z: 200, neighbors: ['SHIRGAON_LINK_1', 'SHIRGAON_LINK_3'] },
-  SHIRGAON_LINK_3: { id: 'SHIRGAON_LINK_3', name: 'Palghar West Approach', x: 22, z: 195, neighbors: ['SHIRGAON_LINK_2', 'P401_HIGHWAY'] },
+  VANGAON_JCT: { id: 'VANGAON_JCT', name: 'Vangaon Highway Junction', x: 34, z: -115, neighbors: ['NORTH_OUTER', 'DAHANU_MID'] },
+  DAHANU_MID: { id: 'DAHANU_MID', name: 'Dahanu Agro Corridor Midpoint', x: 35, z: -175, neighbors: ['VANGAON_JCT', 'D701_HIGHWAY'] },
+  D701_HIGHWAY: { id: 'D701_HIGHWAY', name: 'Dahanu Highway near D701', x: 35, z: -230, neighbors: ['DAHANU_MID', 'D701_ENTRANCE'] },
 
-  MANOR_APPROACH_1: { id: 'MANOR_APPROACH_1', name: 'Boisar East Flyover Ramp', x: 45, z: -16, neighbors: ['BOISAR_TOWN', 'MANOR_APPROACH_2'] },
-  MANOR_APPROACH_2: { id: 'MANOR_APPROACH_2', name: 'Elevated Overpass Cross-Bridge', x: 105, z: -14, neighbors: ['MANOR_APPROACH_1', 'MANOR_SURYA_RIVER'] },
-  MANOR_SURYA_RIVER: { id: 'MANOR_SURYA_RIVER', name: 'Surya River Expressway Bridge', x: 160, z: -10, neighbors: ['MANOR_APPROACH_2', 'M501_HIGHWAY'] },
-  M501_HIGHWAY: { id: 'M501_HIGHWAY', name: 'Manor NH-48 Expressway near M501', x: 210, z: -8, neighbors: ['MANOR_SURYA_RIVER', 'PALGHAR_MANOR_LINK_2', 'M501_ENTRANCE'] },
-  PALGHAR_MANOR_LINK_1: { id: 'PALGHAR_MANOR_LINK_1', name: 'Surya River Corridor South', x: 90, z: 135, neighbors: ['P401_HIGHWAY', 'PALGHAR_MANOR_LINK_2'] },
-  PALGHAR_MANOR_LINK_2: { id: 'PALGHAR_MANOR_LINK_2', name: 'Manor South Link', x: 155, z: 55, neighbors: ['PALGHAR_MANOR_LINK_1', 'M501_HIGHWAY'] },
+  SHIRGAON_PT2: { id: 'SHIRGAON_PT2', name: 'Shirgaon East Palms', x: 20, z: 165, neighbors: ['UMROLI_JCT', 'SHIRGAON_PT3'] },
+  SHIRGAON_PT3: { id: 'SHIRGAON_PT3', name: 'Shirgaon Rural Enclave', x: 0, z: 175, neighbors: ['SHIRGAON_PT2', 'SHIRGAON_PT4'] },
+  SHIRGAON_PT4: { id: 'SHIRGAON_PT4', name: 'Shirgaon Historic Fort Approach', x: -50, z: 195, neighbors: ['SHIRGAON_PT3', 'SHIRGAON_COAST_HWY'] },
+  SHIRGAON_COAST_HWY: { id: 'SHIRGAON_COAST_HWY', name: 'Shirgaon Beach Road', x: -95, z: 215, neighbors: ['SHIRGAON_PT4', 'S801_ENTRANCE', 'SHIRGAON_LINK_1'] },
+  SHIRGAON_LINK_1: { id: 'SHIRGAON_LINK_1', name: 'Shirgaon South Palms', x: -65, z: 215, neighbors: ['SHIRGAON_COAST_HWY', 'SHIRGAON_LINK_2'] },
+  SHIRGAON_LINK_2: { id: 'SHIRGAON_LINK_2', name: 'Shirgaon-Palghar Rural Cross', x: -25, z: 215, neighbors: ['SHIRGAON_LINK_1', 'SHIRGAON_LINK_3'] },
+  SHIRGAON_LINK_3: { id: 'SHIRGAON_LINK_3', name: 'Palghar West Approach', x: 15, z: 215, neighbors: ['SHIRGAON_LINK_2', 'P401_HIGHWAY'] },
 
-  MIDC_BRANCH: { id: 'MIDC_BRANCH', name: 'Navapur Rd / MIDC Split', x: -16, z: -4, neighbors: ['CENTRAL_ROUNDABOUT', 'NAVAPUR_CENTRAL', 'MIDC_CHEM'] },
-  NAVAPUR_CENTRAL: { id: 'NAVAPUR_CENTRAL', name: 'Navapur Road Central', x: -30, z: -10, neighbors: ['MIDC_BRANCH', 'NAVAPUR_B104_HWY'] },
-  NAVAPUR_B104_HWY: { id: 'NAVAPUR_B104_HWY', name: 'Navapur Highway near B104', x: -48, z: -16, neighbors: ['NAVAPUR_CENTRAL', 'NAVAPUR_OUTER', 'B104_ENTRANCE'] },
-  NAVAPUR_OUTER: { id: 'NAVAPUR_OUTER', name: 'Navapur Outer Ring', x: -68, z: -22, neighbors: ['NAVAPUR_B104_HWY', 'NAVAPUR_BEACH'] },
-  NAVAPUR_BEACH: { id: 'NAVAPUR_BEACH', name: 'Navapur Coastal Road', x: -80, z: -24, neighbors: ['NAVAPUR_OUTER', 'CHINCHANI_COAST'] },
-  CHINCHANI_COAST: { id: 'CHINCHANI_COAST', name: 'Chinchani Coast Road', x: -88, z: -24, neighbors: ['NAVAPUR_BEACH', 'T601_HIGHWAY'] },
-  T601_HIGHWAY: { id: 'T601_HIGHWAY', name: 'Tarapur Coastal Highway near T601', x: -96, z: -24, neighbors: ['CHINCHANI_COAST', 'T601_ENTRANCE'] },
+  MANOR_APPROACH_1: { id: 'MANOR_APPROACH_1', name: 'Boisar East Flyover Ramp', x: 60, z: -20, neighbors: ['BOISAR_TOWN', 'MANOR_APPROACH_2'] },
+  MANOR_APPROACH_2: { id: 'MANOR_APPROACH_2', name: 'Elevated Overpass Cross-Bridge', x: 115, z: -22, neighbors: ['MANOR_APPROACH_1', 'MANOR_SURYA_RIVER'] },
+  MANOR_SURYA_RIVER: { id: 'MANOR_SURYA_RIVER', name: 'Surya River Expressway Bridge', x: 165, z: -24, neighbors: ['MANOR_APPROACH_2', 'M501_HIGHWAY'] },
+  M501_HIGHWAY: { id: 'M501_HIGHWAY', name: 'Manor NH-48 Expressway near M501', x: 205, z: -25, neighbors: ['MANOR_SURYA_RIVER', 'PALGHAR_MANOR_LINK_2', 'M501_ENTRANCE'] },
+  PALGHAR_MANOR_LINK_1: { id: 'PALGHAR_MANOR_LINK_1', name: 'Surya River Corridor South', x: 105, z: 150, neighbors: ['P401_HIGHWAY', 'PALGHAR_MANOR_LINK_2'] },
+  PALGHAR_MANOR_LINK_2: { id: 'PALGHAR_MANOR_LINK_2', name: 'Manor South Link', x: 160, z: 70, neighbors: ['PALGHAR_MANOR_LINK_1', 'M501_HIGHWAY'] },
 
-  MIDC_CHEM: { id: 'MIDC_CHEM', name: 'MIDC Chemical Zone', x: -22, z: 10, neighbors: ['MIDC_BRANCH', 'MIDC_C201_HWY'] },
-  MIDC_C201_HWY: { id: 'MIDC_C201_HWY', name: 'MIDC Ring near C201', x: -36, z: 18, neighbors: ['MIDC_CHEM', 'MIDC_HEAVY', 'C201_ENTRANCE'] },
-  MIDC_HEAVY: { id: 'MIDC_HEAVY', name: 'MIDC Heavy Engineering Sector', x: -28, z: 34, neighbors: ['MIDC_C201_HWY', 'MIDC_BORDER'] },
-  MIDC_BORDER: { id: 'MIDC_BORDER', name: 'MIDC / Saravali Industrial Border', x: -2, z: 16, neighbors: ['MIDC_HEAVY', 'SARAVALI_JCT'] },
+  MIDC_BRANCH: { id: 'MIDC_BRANCH', name: 'Navapur Rd / MIDC Split', x: -30, z: -5, neighbors: ['CENTRAL_ROUNDABOUT', 'NAVAPUR_CENTRAL', 'MIDC_CHEM'] },
+  NAVAPUR_CENTRAL: { id: 'NAVAPUR_CENTRAL', name: 'Navapur Road Central', x: -60, z: -10, neighbors: ['MIDC_BRANCH', 'NAVAPUR_B104_HWY'] },
+  NAVAPUR_B104_HWY: { id: 'NAVAPUR_B104_HWY', name: 'Navapur Highway near B104', x: -95, z: -10, neighbors: ['NAVAPUR_CENTRAL', 'NAVAPUR_OUTER', 'B104_ENTRANCE'] },
+  NAVAPUR_OUTER: { id: 'NAVAPUR_OUTER', name: 'Navapur Outer Ring', x: -135, z: -35, neighbors: ['NAVAPUR_B104_HWY', 'CHINCHANI_COAST'] },
+  CHINCHANI_COAST: { id: 'CHINCHANI_COAST', name: 'Chinchani Coast Road', x: -155, z: -50, neighbors: ['NAVAPUR_OUTER', 'T601_HIGHWAY'] },
+  T601_HIGHWAY: { id: 'T601_HIGHWAY', name: 'Tarapur Coastal Highway near T601', x: -170, z: -65, neighbors: ['CHINCHANI_COAST', 'T601_ENTRANCE'] },
 
-  BOISAR_SPUR_START: { id: 'BOISAR_SPUR_START', name: 'Boisar Spur Junction', x: 0, z: -2, neighbors: ['CENTRAL_ROUNDABOUT', 'A102_HWY_APPROACH'] },
-  A102_HWY_APPROACH: { id: 'A102_HWY_APPROACH', name: 'Spur Highway near A102', x: -8, z: -14, neighbors: ['BOISAR_SPUR_START', 'A102_ENTRANCE'] },
-  A102_ENTRANCE: { id: 'A102_ENTRANCE', name: 'A102 Entrance', x: -12, z: -21, neighbors: ['A102_HWY_APPROACH', 'STATION_A102_BAY'] },
-  STATION_A102_BAY: { id: 'STATION_A102_BAY', name: 'Station A102 Bay', x: -16, z: -28, neighbors: ['A102_ENTRANCE'] },
+  MIDC_CHEM: { id: 'MIDC_CHEM', name: 'MIDC Chemical Zone', x: -50, z: 35, neighbors: ['MIDC_BRANCH', 'MIDC_C201_HWY'] },
+  MIDC_C201_HWY: { id: 'MIDC_C201_HWY', name: 'MIDC Ring near C201', x: -70, z: 80, neighbors: ['MIDC_CHEM', 'MIDC_HEAVY', 'C201_ENTRANCE'] },
+  MIDC_HEAVY: { id: 'MIDC_HEAVY', name: 'MIDC Heavy Engineering Sector', x: -55, z: 105, neighbors: ['MIDC_C201_HWY', 'MIDC_BORDER'] },
+  MIDC_BORDER: { id: 'MIDC_BORDER', name: 'MIDC / Saravali Industrial Border', x: -10, z: 80, neighbors: ['MIDC_HEAVY', 'SARAVALI_JCT'] },
 
-  B104_ENTRANCE: { id: 'B104_ENTRANCE', name: 'B104 Entrance', x: -48, z: -24, neighbors: ['NAVAPUR_B104_HWY', 'STATION_B104_BAY'] },
-  STATION_B104_BAY: { id: 'STATION_B104_BAY', name: 'Station B104 Bay', x: -48, z: -32, neighbors: ['B104_ENTRANCE'] },
+  A102_ENTRANCE: { id: 'A102_ENTRANCE', name: 'A102 Entrance', x: 15, z: -40, neighbors: ['BOISAR_EAST', 'STATION_A102_BAY'] },
+  STATION_A102_BAY: { id: 'STATION_A102_BAY', name: 'Station A102 Bay', x: 26, z: -40, neighbors: ['A102_ENTRANCE'] },
 
-  C201_ENTRANCE: { id: 'C201_ENTRANCE', name: 'C201 Entrance', x: -43, z: 18, neighbors: ['MIDC_C201_HWY', 'STATION_C201_BAY'] },
-  STATION_C201_BAY: { id: 'STATION_C201_BAY', name: 'Station C201 Bay', x: -50, z: 18, neighbors: ['C201_ENTRANCE'] },
+  B104_ENTRANCE: { id: 'B104_ENTRANCE', name: 'B104 Entrance', x: -95, z: -17, neighbors: ['NAVAPUR_B104_HWY', 'STATION_B104_BAY'] },
+  STATION_B104_BAY: { id: 'STATION_B104_BAY', name: 'Station B104 Bay', x: -95, z: -25, neighbors: ['B104_ENTRANCE'] },
 
-  D305_ENTRANCE: { id: 'D305_ENTRANCE', name: 'D305 Entrance', x: 34, z: 65, neighbors: ['D305_JUNCTION', 'STATION_D305_BAY'] },
-  STATION_D305_BAY: { id: 'STATION_D305_BAY', name: 'Station D305 Bay', x: 42, z: 65, neighbors: ['D305_ENTRANCE'] },
+  C201_ENTRANCE: { id: 'C201_ENTRANCE', name: 'C201 Entrance', x: -77, z: 80, neighbors: ['MIDC_C201_HWY', 'STATION_C201_BAY'] },
+  STATION_C201_BAY: { id: 'STATION_C201_BAY', name: 'Station C201 Bay', x: -85, z: 80, neighbors: ['C201_ENTRANCE'] },
 
-  P401_ENTRANCE: { id: 'P401_ENTRANCE', name: 'P401 Entrance', x: 56, z: 190, neighbors: ['P401_HIGHWAY', 'STATION_P401_BAY'] },
-  STATION_P401_BAY: { id: 'STATION_P401_BAY', name: 'Station P401 Bay', x: 64, z: 190, neighbors: ['P401_ENTRANCE'] },
+  D305_ENTRANCE: { id: 'D305_ENTRANCE', name: 'D305 Entrance', x: 45, z: 75, neighbors: ['D305_JUNCTION', 'STATION_D305_BAY'] },
+  STATION_D305_BAY: { id: 'STATION_D305_BAY', name: 'Station D305 Bay', x: 55, z: 75, neighbors: ['D305_ENTRANCE'] },
 
-  S801_ENTRANCE: { id: 'S801_ENTRANCE', name: 'S801 Entrance', x: -65, z: 212, neighbors: ['SHIRGAON_COAST_HWY', 'STATION_S801_BAY'] },
-  STATION_S801_BAY: { id: 'STATION_S801_BAY', name: 'Station S801 Bay', x: -65, z: 218, neighbors: ['S801_ENTRANCE'] },
+  P401_ENTRANCE: { id: 'P401_ENTRANCE', name: 'P401 Entrance', x: 65, z: 215, neighbors: ['P401_HIGHWAY', 'STATION_P401_BAY'] },
+  STATION_P401_BAY: { id: 'STATION_P401_BAY', name: 'Station P401 Bay', x: 75, z: 215, neighbors: ['P401_ENTRANCE'] },
 
-  M501_ENTRANCE: { id: 'M501_ENTRANCE', name: 'M501 Entrance', x: 211, z: -17, neighbors: ['M501_HIGHWAY', 'STATION_M501_BAY'] },
-  STATION_M501_BAY: { id: 'STATION_M501_BAY', name: 'Station M501 Bay', x: 212, z: -26, neighbors: ['M501_ENTRANCE'] },
+  S801_ENTRANCE: { id: 'S801_ENTRANCE', name: 'S801 Entrance', x: -102, z: 215, neighbors: ['SHIRGAON_COAST_HWY', 'STATION_S801_BAY'] },
+  STATION_S801_BAY: { id: 'STATION_S801_BAY', name: 'Station S801 Bay', x: -110, z: 215, neighbors: ['S801_ENTRANCE'] },
 
-  T601_ENTRANCE: { id: 'T601_ENTRANCE', name: 'T601 Entrance', x: -96, z: -31, neighbors: ['T601_HIGHWAY', 'STATION_T601_BAY'] },
-  STATION_T601_BAY: { id: 'STATION_T601_BAY', name: 'Station T601 Bay', x: -96, z: -38, neighbors: ['T601_ENTRANCE'] },
+  M501_ENTRANCE: { id: 'M501_ENTRANCE', name: 'M501 Entrance', x: 212, z: -25, neighbors: ['M501_HIGHWAY', 'STATION_M501_BAY'] },
+  STATION_M501_BAY: { id: 'STATION_M501_BAY', name: 'Station M501 Bay', x: 220, z: -25, neighbors: ['M501_ENTRANCE'] },
 
-  D701_ENTRANCE: { id: 'D701_ENTRANCE', name: 'D701 Entrance', x: 40, z: -220, neighbors: ['D701_HIGHWAY', 'STATION_D701_BAY'] },
-  STATION_D701_BAY: { id: 'STATION_D701_BAY', name: 'Station D701 Bay', x: 48, z: -220, neighbors: ['D701_ENTRANCE'] },
+  T601_ENTRANCE: { id: 'T601_ENTRANCE', name: 'T601 Entrance', x: -177, z: -65, neighbors: ['T601_HIGHWAY', 'STATION_T601_BAY'] },
+  STATION_T601_BAY: { id: 'STATION_T601_BAY', name: 'Station T601 Bay', x: -185, z: -65, neighbors: ['T601_ENTRANCE'] },
+
+  D701_ENTRANCE: { id: 'D701_ENTRANCE', name: 'D701 Entrance', x: 43, z: -230, neighbors: ['D701_HIGHWAY', 'STATION_D701_BAY'] },
+  STATION_D701_BAY: { id: 'STATION_D701_BAY', name: 'Station D701 Bay', x: 52, z: -230, neighbors: ['D701_ENTRANCE'] },
+
+  BETEGAON_HOME_024: { id: 'BETEGAON_HOME_024', name: 'Betegaon Green Valley (HOME-024)', x: 45, z: 25, neighbors: ['SARAVALI_JCT', 'BETEGAON_SEC'] },
+  BETEGAON_SEC: { id: 'BETEGAON_SEC', name: 'Betegaon Residential Sector', x: 80, z: 15, neighbors: ['BETEGAON_HOME_024', 'BETEGAON_HOME_088'] },
+  BETEGAON_HOME_088: { id: 'BETEGAON_HOME_088', name: 'Betegaon Enclave (HOME-088)', x: 55, z: -5, neighbors: ['BETEGAON_SEC', 'BETEGAON_GREEN'] },
+  BETEGAON_GREEN: { id: 'BETEGAON_GREEN', name: 'Betegaon Green Belt', x: 35, z: -12, neighbors: ['BETEGAON_HOME_088', 'BOISAR_TOWN'] },
+  FEEDER_AVE: { id: 'FEEDER_AVE', name: 'Substation Feeder Ave', x: -55, z: -50, neighbors: ['NAVAPUR_CENTRAL', 'GRID_S01'] },
+  GRID_S01: { id: 'GRID_S01', name: 'GRID-S01 Distribution Substation Access', x: -50, z: -90, neighbors: ['FEEDER_AVE', 'SUBSTATION_NORTH_LINK'] },
+  SUBSTATION_NORTH_LINK: { id: 'SUBSTATION_NORTH_LINK', name: 'Substation North Link', x: -10, z: -80, neighbors: ['GRID_S01', 'SUBSTATION_RECONNECT'] },
+  SUBSTATION_RECONNECT: { id: 'SUBSTATION_RECONNECT', name: 'Northern Grid Reconnect', x: 10, z: -70, neighbors: ['SUBSTATION_NORTH_LINK', 'NORTH_OUTER'] },
 };
 
 export const STATION_CODE_TO_NODE: Record<string, string> = {
@@ -154,10 +162,13 @@ function getBaseSpeed(uId: string, vId: string): number {
   return 38;
 }
 
-export function findNearestGraphNodeId(pos: Position3D): string {
+export function findNearestGraphNodeId(pos: Position3D, allowStationSpurs: boolean = false): string {
   let nearestId = 'CENTRAL_ROUNDABOUT';
   let minDist = Infinity;
   for (const [id, node] of Object.entries(MARGDARSHAK_ROAD_NODES)) {
+    if (!allowStationSpurs && (id.includes('BAY') || id.includes('ENTRANCE'))) {
+      continue;
+    }
     const d = Math.hypot(node.x - pos.x, node.z - pos.z);
     if (d < minDist) {
       minDist = d;
@@ -191,14 +202,74 @@ export class MargdarshakRouter {
     return Number(liveCongestion.toFixed(2));
   }
 
+  public static getRouteNameForPath(path: string[], mode: 'TRAFFIC_FREE' | 'SHORTEST_DISTANCE' | 'MOST_TRAFFIC'): string {
+    const pStr = path.join(' ');
+    if (path.length <= 1) {
+      if (mode === 'TRAFFIC_FREE') return 'Dedicated EV Express Bay Spur';
+      if (mode === 'SHORTEST_DISTANCE') return 'Direct Forecourt Driveway';
+      return 'Commercial Corridor & Inflow Bottleneck';
+    }
+
+    if (mode === 'TRAFFIC_FREE') {
+      if (pStr.includes('NAVAPUR')) return 'Via Navapur Coastal Arterial Bypass';
+      if (pStr.includes('MANOR_SURYA_RIVER') || pStr.includes('M501')) return 'Via Surya River Express Highway';
+      if (pStr.includes('SHIRGAON')) return 'Via Shirgaon Coastal Promenade';
+      if (pStr.includes('NORTH_OUTER') || pStr.includes('VANGAON')) return 'Via Dahanu Outer Arterial Bypass';
+      if (pStr.includes('PALGHAR')) return 'Via SH-40 Palghar Freeflow Corridor';
+      return 'Via Smart Traffic-Adaptive Arterial Bypass';
+    }
+
+    if (mode === 'SHORTEST_DISTANCE') {
+      if (pStr.includes('CENTRAL_ROUNDABOUT')) return 'Via Central Roundabout Direct Line';
+      if (pStr.includes('MIDC_BRANCH')) return 'Via MIDC Direct Connecting Spur';
+      if (pStr.includes('SARAVALI')) return 'Via Saravali Core Crossroad';
+      if (pStr.includes('BOISAR_TOWN')) return 'Via Boisar Central Geographic Axis';
+      return 'Via Direct Geographic Road Vector';
+    }
+
+    // mode === 'MOST_TRAFFIC'
+    if (pStr.includes('BOISAR_TOWN')) return 'Via Boisar Town Market & Station Chokepoint';
+    if (pStr.includes('MIDC_CHEM') || pStr.includes('MIDC_HEAVY')) return 'Via Tarapur MIDC Industrial Heavy Corridor';
+    if (pStr.includes('CENTRAL_ROUNDABOUT')) return 'Via Central Roundabout High-Congestion Junction';
+    if (pStr.includes('SARAVALI_JCT')) return 'Via Saravali Industrial Inflow Chokepoint';
+    return 'Via Peak-Hour Arterial Chokepoint Corridor';
+  }
+
   public static runDijkstra(
     startNodeId: string,
     goalNodeId: string,
     mode: 'TRAFFIC_FREE' | 'SHORTEST_DISTANCE' | 'MOST_TRAFFIC',
     vehicles: Vehicle[] = []
-  ): { path: string[]; distanceKm: number; timeMin: number; avgCongestion: number; score: number } {
+  ): { path: string[]; distanceKm: number; timeMin: number; avgCongestion: number; score: number; routeName: string } {
     if (startNodeId === goalNodeId) {
-      return { path: [startNodeId], distanceKm: 0.1, timeMin: 0.2, avgCongestion: 0.1, score: 1.0 };
+      if (mode === 'TRAFFIC_FREE') {
+        return {
+          path: [startNodeId],
+          distanceKm: 0.35,
+          timeMin: 0.6,
+          avgCongestion: 12,
+          score: 1.1,
+          routeName: 'Dedicated EV Express Bay Spur',
+        };
+      }
+      if (mode === 'SHORTEST_DISTANCE') {
+        return {
+          path: [startNodeId],
+          distanceKm: 0.15,
+          timeMin: 0.8,
+          avgCongestion: 32,
+          score: 1.4,
+          routeName: 'Direct Forecourt Driveway',
+        };
+      }
+      return {
+        path: [startNodeId],
+        distanceKm: 0.72,
+        timeMin: 3.2,
+        avgCongestion: 78,
+        score: 4.8,
+        routeName: 'Commercial Corridor & Inflow Bottleneck',
+      };
     }
 
     const distMap: Record<string, number> = {};
@@ -234,6 +305,16 @@ export class MargdarshakRouter {
         const neighbor = MARGDARSHAK_ROAD_NODES[neighborId];
         if (!neighbor) continue;
 
+        // Prevent vehicles from using fuel station roads as through-routes
+        const isNeighborStationSpur = neighborId.includes('BAY') || neighborId.includes('ENTRANCE');
+        if (isNeighborStationSpur) {
+          const isTarget = neighborId === goalNodeId || (MARGDARSHAK_ROAD_NODES[goalNodeId]?.neighbors || []).includes(neighborId);
+          const isDirectExit = current === startNodeId;
+          if (!isTarget && !isDirectExit) {
+            continue;
+          }
+        }
+
         const rawDist = Math.hypot(neighbor.x - currNode.x, neighbor.z - currNode.z);
         const distKm = Math.max(0.05, rawDist * 0.024); // Map scale: 1 unit ≈ 24m
         const baseSpeed = getBaseSpeed(current, neighborId);
@@ -243,15 +324,15 @@ export class MargdarshakRouter {
         // 1. Nonlinear Traffic Delay: Travel Time = (distance / speed) * 60 * (1 + 2.0 * congestion)
         const travelTimeMin = (distKm / baseSpeed) * 60 * (1 + 2.0 * congestion);
         
-        // 2. Margdarshak Multi-Objective Cost: Time + 0.18*Distance + 18*Congestion
-        const margdarshakCost = travelTimeMin + 0.18 * distKm + 18 * congestion;
-
-        let edgeWeight = margdarshakCost;
+        let edgeWeight = travelTimeMin + 0.18 * distKm + 18 * congestion;
         if (mode === 'SHORTEST_DISTANCE') {
           edgeWeight = distKm; // Pure physical distance Dijkstra
         } else if (mode === 'MOST_TRAFFIC') {
-          // Penalize low-congestion roads to demonstrate the heavy-traffic route
-          edgeWeight = travelTimeMin * (congestion + 0.2);
+          // Invert congestion: busy chokepoints have lower weight in Dijkstra so it actively routes through heavy traffic corridors
+          edgeWeight = distKm * Math.max(0.08, 1.15 - congestion * 0.95);
+        } else {
+          // TRAFFIC_FREE: penalize traffic heavily to find free-flowing bypasses
+          edgeWeight = travelTimeMin * (1 + 3.0 * congestion) + 0.15 * distKm + 24 * congestion;
         }
 
         const alt = distMap[current] + edgeWeight;
@@ -285,22 +366,38 @@ export class MargdarshakRouter {
       if (!u || !v) continue;
       const legDist = Math.max(0.05, Math.hypot(v.x - u.x, v.z - u.z) * 0.024);
       const legSpeed = getBaseSpeed(path[i], path[i + 1]);
-      const legCongestion = this.getLiveEdgeCongestion(path[i], path[i + 1], vehicles);
+      let legCongestion = this.getLiveEdgeCongestion(path[i], path[i + 1], vehicles);
 
-      totalDistKm += legDist;
-      totalCongestion += legCongestion;
-      totalTimeMin += (legDist / legSpeed) * 60 * (1 + 2.0 * legCongestion);
+      if (mode === 'MOST_TRAFFIC') {
+        // Reflect peak congestion in arterial choke-points
+        legCongestion = Math.min(0.95, Math.max(0.68, legCongestion * 1.35));
+        totalDistKm += legDist;
+        totalCongestion += legCongestion;
+        totalTimeMin += (legDist / Math.min(24, legSpeed)) * 60 * (1 + 2.6 * legCongestion) + 0.4;
+      } else if (mode === 'SHORTEST_DISTANCE') {
+        totalDistKm += legDist;
+        totalCongestion += legCongestion;
+        totalTimeMin += (legDist / legSpeed) * 60 * (1 + 1.4 * legCongestion);
+      } else {
+        // TRAFFIC_FREE bypass speed
+        legCongestion = Math.max(0.08, legCongestion * 0.7);
+        totalDistKm += legDist;
+        totalCongestion += legCongestion;
+        totalTimeMin += (legDist / Math.max(38, legSpeed)) * 60 * (1 + 0.6 * legCongestion);
+      }
     }
 
-    const avgCongestion = path.length > 1 ? totalCongestion / (path.length - 1) : 0.25;
+    const avgCongestion = path.length > 1 ? totalCongestion / (path.length - 1) : (mode === 'MOST_TRAFFIC' ? 0.76 : mode === 'SHORTEST_DISTANCE' ? 0.38 : 0.14);
     const finalScore = totalTimeMin + 0.18 * totalDistKm + 18 * avgCongestion;
+    const routeName = this.getRouteNameForPath(path, mode);
 
     return {
       path,
-      distanceKm: Number(totalDistKm.toFixed(2)),
-      timeMin: Number(totalTimeMin.toFixed(1)),
-      avgCongestion: Number((avgCongestion * 100).toFixed(0)),
+      distanceKm: Number(Math.max(0.15, totalDistKm).toFixed(2)),
+      timeMin: Number(Math.max(0.4, totalTimeMin).toFixed(1)),
+      avgCongestion: Number(Math.min(96, Math.max(8, avgCongestion * 100)).toFixed(0)),
       score: Number(finalScore.toFixed(1)),
+      routeName,
     };
   }
 
@@ -356,12 +453,14 @@ export class MargdarshakRouter {
       const totalBays = st.chargers.length;
       const maxPower = Math.max(...st.chargers.map((c) => c.powerKw), 150);
 
-      const timeSaved = Math.max(0, Number((congested.timeMin - trafficFree.timeMin).toFixed(1)));
+      const timeSaved = Math.max(0.5, Number((congested.timeMin - trafficFree.timeMin).toFixed(1)));
 
       const fastestRouteOption: MargdarshakRouteOption = {
         type: 'TRAFFIC_FREE',
         title: 'Margdarshak Traffic-Free (Fastest)',
-        badge: '⚡ RECOMMENDED (LEAST TIME)',
+        routeName: trafficFree.routeName,
+        highlightTag: 'LESS TRAFFIC • LEAST TIME',
+        badge: '⚡ LEAST TIME',
         badgeColor: 'emerald',
         distanceKm: trafficFree.distanceKm,
         estimatedTimeMin: trafficFree.timeMin,
@@ -369,13 +468,15 @@ export class MargdarshakRouter {
         margdarshakScore: trafficFree.score,
         waypoints: trafficFreeWaypoints,
         nodePath: trafficFree.path,
-        description: `Bypasses congested city bottlenecks. Saves ${timeSaved > 0 ? timeSaved + ' mins' : 'time'} using Margdarshak multi-objective routing.`,
+        description: `Bypasses congested bottlenecks via ${trafficFree.routeName}. Saves ${timeSaved} mins using Margdarshak multi-objective routing.`,
       };
 
       const shortestRouteOption: MargdarshakRouteOption = {
         type: 'SHORTEST_DISTANCE',
         title: 'Shortest Distance Route',
-        badge: '📏 SHORTEST DISTANCE',
+        routeName: shortest.routeName,
+        highlightTag: 'MIN DISTANCE',
+        badge: '📏 MIN DISTANCE',
         badgeColor: 'blue',
         distanceKm: shortest.distanceKm,
         estimatedTimeMin: shortest.timeMin,
@@ -383,13 +484,15 @@ export class MargdarshakRouter {
         margdarshakScore: shortest.score,
         waypoints: shortestWaypoints,
         nodePath: shortest.path,
-        description: `Direct geographic line. Passes through core road links (${shortest.avgCongestion}% traffic).`,
+        description: `Direct geographic line via ${shortest.routeName}. Minimum physical distance (${shortest.distanceKm} km, ${shortest.avgCongestion}% traffic).`,
       };
 
       const congestedRouteOption: MargdarshakRouteOption = {
         type: 'MOST_TRAFFIC',
-        title: 'Most Congested Route (Rush Hour Delay)',
-        badge: '⚠️ HEAVIEST TRAFFIC',
+        title: 'Most Congested Corridor',
+        routeName: congested.routeName,
+        highlightTag: 'BUSIEST ROUTE • HEAVY DELAY',
+        badge: '⚠️ BUSIEST ROUTE',
         badgeColor: 'amber',
         distanceKm: congested.distanceKm,
         estimatedTimeMin: congested.timeMin,
@@ -397,7 +500,7 @@ export class MargdarshakRouter {
         margdarshakScore: congested.score,
         waypoints: congestedWaypoints,
         nodePath: congested.path,
-        description: `Heavy traffic route with significant delay (+${timeSaved} mins) across arterial intersections.`,
+        description: `Heavy traffic bottleneck via ${congested.routeName}. Heavy delay (+${timeSaved} mins delay, ${congested.avgCongestion}% congestion).`,
       };
 
       return {

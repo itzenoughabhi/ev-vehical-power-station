@@ -47,120 +47,122 @@ export function CitySky() {
     ctx.stroke();
 
     const drawLawn = (center: { px: number; py: number }, w: number, h: number, r: number = 20) => {
-      ctx.fillStyle = '#4ade80';
+      ctx.fillStyle = '#e2fbe8';
       ctx.beginPath();
       const x = center.px - w / 2;
       const y = center.py - h / 2;
       ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
       ctx.fill();
-      ctx.strokeStyle = '#22c55e';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#bbf7d0';
+      ctx.lineWidth = 2;
       ctx.stroke();
     };
 
-    drawLawn(toPx(30, -4), 220, 180, 18);
-    drawLawn(toPx(45, 20), 280, 220, 20);
-    drawLawn(toPx(-26, 26), 220, 180, 16);
-    drawLawn(toPx(-48, -20), 260, 200, 18);
-    drawLawn(toPx(6, -30), 200, 160, 16);
-    drawLawn(toPx(20, -70), 260, 200, 20);
-    drawLawn(toPx(40, -210), 320, 220, 22);
-    drawLawn(toPx(195, -30), 320, 220, 22);
-    drawLawn(toPx(55, 185), 320, 240, 24);
-    drawLawn(toPx(-60, 195), 260, 200, 20);
-    drawLawn(toPx(-96, -30), 280, 200, 20);
+    drawLawn(toPx(55, 15), 180, 140, 16);
+    drawLawn(toPx(95, 45), 200, 160, 20);
+    drawLawn(toPx(-45, 30), 180, 140, 16);
+    drawLawn(toPx(-120, -10), 180, 140, 18);
+    drawLawn(toPx(75, -80), 220, 180, 20);
+    drawLawn(toPx(60, -180), 240, 180, 22);
+    drawLawn(toPx(170, -25), 240, 180, 22);
+    drawLawn(toPx(80, 160), 240, 180, 24);
+    drawLawn(toPx(-60, 160), 200, 160, 20);
+    drawLawn(toPx(-140, -60), 220, 180, 20);
 
     ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 26;
+    ctx.lineWidth = 24;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    ctx.beginPath();
-    const hwyPts = [
-      toPx(28, -55), toPx(18, -32), toPx(6, -18), toPx(0, -2),
-      toPx(5, 10), toPx(16, 28), toPx(22, 48),
-      toPx(26, 65), toPx(28, 95), toPx(34, 135), toPx(42, 170), toPx(48, 190),
-    ];
-    ctx.moveTo(hwyPts[0].px, hwyPts[0].py);
-    for (let i = 1; i < hwyPts.length; i++) ctx.lineTo(hwyPts[i].px, hwyPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const shirgaonPts = [
-      toPx(34, 135), toPx(12, 150), toPx(-15, 170), toPx(-42, 192), toPx(-65, 205),
-    ];
-    ctx.moveTo(shirgaonPts[0].px, shirgaonPts[0].py);
-    for (let i = 1; i < shirgaonPts.length; i++) ctx.lineTo(shirgaonPts[i].px, shirgaonPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const shirgaonPalgharPts = [
-      toPx(-65, 205), toPx(-30, 203), toPx(-5, 200), toPx(22, 195), toPx(48, 190),
-    ];
-    ctx.moveTo(shirgaonPalgharPts[0].px, shirgaonPalgharPts[0].py);
-    for (let i = 1; i < shirgaonPalgharPts.length; i++) ctx.lineTo(shirgaonPalgharPts[i].px, shirgaonPalgharPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const navPts = [
-      toPx(0, -2), toPx(-16, -4), toPx(-30, -10),
-      toPx(-48, -16), toPx(-68, -22), toPx(-82, -24), toPx(-96, -24),
-    ];
-    ctx.moveTo(navPts[0].px, navPts[0].py);
-    for (let i = 1; i < navPts.length; i++) ctx.lineTo(navPts[i].px, navPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const manorPts = [
-      toPx(6, -18), toPx(45, -16), toPx(105, -14), toPx(160, -10), toPx(210, -8),
-    ];
-    ctx.moveTo(manorPts[0].px, manorPts[0].py);
-    for (let i = 1; i < manorPts.length; i++) ctx.lineTo(manorPts[i].px, manorPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const dahanuPts = [
-      toPx(28, -55), toPx(30, -110), toPx(31, -165), toPx(32, -220),
-    ];
-    ctx.moveTo(dahanuPts[0].px, dahanuPts[0].py);
-    for (let i = 1; i < dahanuPts.length; i++) ctx.lineTo(dahanuPts[i].px, dahanuPts[i].py);
-    ctx.stroke();
-
-    ctx.beginPath();
-    const palgharManorPts = [
-      toPx(48, 190), toPx(90, 135), toPx(155, 55), toPx(210, -8),
-    ];
-    ctx.moveTo(palgharManorPts[0].px, palgharManorPts[0].py);
-    for (let i = 1; i < palgharManorPts.length; i++) ctx.lineTo(palgharManorPts[i].px, palgharManorPts[i].py);
-    ctx.stroke();
-
-    const drawApron = (center: { px: number; py: number }, w: number, h: number) => {
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 3;
-      ctx.fillRect(center.px - w / 2, center.py - h / 2, w, h);
-      ctx.strokeRect(center.px - w / 2, center.py - h / 2, w, h);
+    const drawRoadPath = (pts: { px: number; py: number }[]) => {
+      if (pts.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(pts[0].px, pts[0].py);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].px, pts[i].py);
+      ctx.stroke();
     };
 
-    drawApron(toPx(-8, -18), 120, 80);
-    drawApron(toPx(-48, -28), 125, 85);
-    drawApron(toPx(-48, 22), 120, 85);
-    drawApron(toPx(38, 65), 120, 85);
-    drawApron(toPx(48, 200), 160, 100);
-    drawApron(toPx(-65, 210), 150, 95);
-    drawApron(toPx(210, -20), 160, 100);
-    drawApron(toPx(36, -220), 140, 90);
-    drawApron(toPx(-96, -32), 140, 90);
+    // SH-40 Corridor
+    drawRoadPath([
+      toPx(32, -60), toPx(20, -40), toPx(12, -18), toPx(0, 0),
+      toPx(14, 30), toPx(32, 75), toPx(36, 115), toPx(40, 155), toPx(50, 215),
+    ]);
 
-    drawApron(toPx(-28, 54), 130, 90);
-    drawApron(toPx(-48, -65), 130, 90);
-    drawApron(toPx(95, 12), 150, 130);
-    drawApron(toPx(58, -118), 150, 110);
-    drawApron(toPx(-86, -75), 140, 100);
-    drawApron(toPx(-36, -82), 130, 75);
-    drawApron(toPx(48, 192), 150, 110);
-    drawApron(toPx(-65, 202), 140, 100);
-    drawApron(toPx(204, -34), 150, 100);
+    // Shirgaon Coastal Road
+    drawRoadPath([
+      toPx(40, 155), toPx(0, 175), toPx(-50, 195), toPx(-95, 215),
+    ]);
+
+    // Shirgaon-Palghar Link
+    drawRoadPath([
+      toPx(-95, 215), toPx(-45, 215), toPx(0, 215), toPx(50, 215),
+    ]);
+
+    // Tarapur Coastal Highway
+    drawRoadPath([
+      toPx(0, 0), toPx(-30, -5), toPx(-60, -10), toPx(-95, -10), toPx(-135, -35), toPx(-170, -65),
+    ]);
+
+    // Manor NH-48 Expressway
+    drawRoadPath([
+      toPx(12, -18), toPx(60, -20), toPx(115, -22), toPx(165, -24), toPx(205, -25),
+    ]);
+
+    // Dahanu Northern Highway
+    drawRoadPath([
+      toPx(32, -60), toPx(34, -115), toPx(35, -175), toPx(35, -230),
+    ]);
+
+    // Palghar-Manor Connector
+    drawRoadPath([
+      toPx(50, 215), toPx(105, 150), toPx(160, 70), toPx(205, -25),
+    ]);
+
+    // Tarapur MIDC Industrial Ring
+    drawRoadPath([
+      toPx(-30, -5), toPx(-50, 35), toPx(-70, 80), toPx(-55, 105), toPx(-30, 125), toPx(-10, 80), toPx(14, 30),
+    ]);
+
+    // Substation Feeder Spur
+    drawRoadPath([
+      toPx(-60, -10), toPx(-55, -50), toPx(-50, -90), toPx(-10, -80), toPx(32, -60),
+    ]);
+
+    // Betegaon-Saravali Loop
+    drawRoadPath([
+      toPx(14, 30), toPx(45, 25), toPx(80, 15), toPx(55, -5), toPx(12, -18),
+    ]);
+
+    const drawApron = (center: { px: number; py: number }, w: number, h: number, r: number = 8) => {
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const x = center.px - w / 2;
+      const y = center.py - h / 2;
+      ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
+      ctx.fill();
+      ctx.stroke();
+    };
+
+    // Station Aprons - Exactly at well-spaced station coordinates
+    drawApron(toPx(26, -40), 72, 54);     // A102
+    drawApron(toPx(-95, -25), 68, 54);    // B104
+    drawApron(toPx(-85, 80), 72, 58);     // C201
+    drawApron(toPx(55, 75), 68, 54);      // D305
+    drawApron(toPx(75, 215), 80, 64);     // P401
+    drawApron(toPx(-110, 215), 72, 58);   // S801
+    drawApron(toPx(220, -25), 80, 64);    // M501
+    drawApron(toPx(-185, -65), 72, 58);   // T601
+    drawApron(toPx(52, -230), 72, 58);    // D701
+    drawApron(toPx(-45, 125), 76, 60);    // S03 Service Center
+    drawApron(toPx(-50, -90), 64, 52);    // GRID-S01 Substation
+
+    // Civic Landmarks Aprons
+    drawApron(toPx(95, 12), 70, 70);      // Shri Ram Mandir
+    drawApron(toPx(58, -118), 70, 56);    // Hospital
+    drawApron(toPx(-86, -75), 72, 58);    // Mall
+    drawApron(toPx(-36, -82), 68, 52);    // Market
 
     ctx.strokeStyle = 'rgba(203, 213, 225, 0.4)';
     ctx.lineWidth = 1;
@@ -176,19 +178,30 @@ export function CitySky() {
       ctx.stroke();
     }
 
-    ctx.font = '700 24px monospace';
+    ctx.font = '700 22px monospace';
     ctx.fillStyle = '#64748b';
     ctx.fillText('EVNEXUS • PALGHAR DISTRICT DIGITAL TWIN', 1400, 120);
-    ctx.fillText('TARAPUR MIDC INDUSTRIAL COMPLEX [C201]', 1550, 2160);
-    ctx.fillText('BETEGAON RESIDENTIAL TOWNSHIP & GREEN BELT', 2180, 2180);
-    ctx.fillText('PALGHAR DISTRICT ADMINISTRATIVE CAPITAL [P401]', 2080, 2520);
-    ctx.fillText('SHIRGAON HISTORIC COAST & BEACH PROMENADE [S801]', 1750, 2540);
-    ctx.fillText('MANOR NH-48 EXPRESS GATEWAY [M501]', 2420, 1940);
-    ctx.fillText('DAHANU NORTH HIGHWAY & AGRO BELT [D701]', 2050, 1540);
-    ctx.fillText('TARAPUR COASTAL ENERGY & ATOMIC ZONE [T601]', 1540, 1920);
-    ctx.fillText('SHRI RAM MANDIR HERITAGE PRECINCT', 2150, 1980);
     ctx.font = '16px monospace';
     ctx.fillText('COORDINATES: 19°47\'24.8"N 72°45\'56.6"E (WGS-84)', 1400, 155);
+
+    ctx.font = '700 16px monospace';
+    ctx.fillStyle = '#475569';
+    const drawLabel = (x: number, z: number, text: string) => {
+      const p = toPx(x, z);
+      ctx.fillText(text, p.px - text.length * 4.5, p.py);
+    };
+
+    drawLabel(26, -48, 'BOISAR CENTRAL HUB [A102]');
+    drawLabel(-95, -34, 'NAVAPUR ROAD HUB [B104]');
+    drawLabel(-185, -74, 'TARAPUR ATOMIC ENERGY HUB [T601]');
+    drawLabel(-85, 71, 'TARAPUR MIDC INDUSTRIAL HUB [C201]');
+    drawLabel(-45, 134, 'TARAPUR EV SERVICE DIAGNOSTICS [S03]');
+    drawLabel(55, 66, 'BOISAR–PALGHAR CORRIDOR [D305]');
+    drawLabel(75, 225, 'PALGHAR DISTRICT CENTRAL HUB [P401]');
+    drawLabel(-110, 225, 'SHIRGAON BEACH & FORT HUB [S801]');
+    drawLabel(220, -34, 'MANOR NH-48 EXPRESS GATEWAY [M501]');
+    drawLabel(52, -239, 'DAHANU HIGHWAY & AGRO HUB [D701]');
+    drawLabel(95, 22, 'SHRI RAM MANDIR HERITAGE PRECINCT');
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.ClampToEdgeWrapping;

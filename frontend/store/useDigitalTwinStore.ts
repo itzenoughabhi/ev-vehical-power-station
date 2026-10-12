@@ -101,6 +101,7 @@ interface DigitalTwinState {
   updateManualDriveSpeed: (speed: number, gear?: 'D' | 'R' | 'P') => void;
   updateManualVehiclePose: (x: number, z: number, heading: number, speed: number, gear?: 'D' | 'R' | 'P', batteryPct?: number, estimatedRangeKm?: number) => void;
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
+  setVehicleBattery: (id: string, pct: number) => void;
   returnToRoad: (vehicleId?: string) => void;
 }
 
@@ -648,6 +649,47 @@ export const useDigitalTwinStore = create<DigitalTwinState>((set, get) => ({
       const updatedSelected = state.selectedObject?.type === 'vehicle' && state.selectedObject.id === id
         ? { ...state.selectedObject, data: { ...state.selectedObject.data, ...updates } }
         : state.selectedObject;
+      return {
+        vehicles: updatedVehicles,
+        selectedObject: updatedSelected,
+      };
+    });
+  },
+
+  setVehicleBattery: (id, pct) => {
+    const clampedPct = Math.max(0, Math.min(100, Math.round(pct)));
+    const estimatedRange = clampedPct <= 0 ? 0 : Math.max(1, Math.round((clampedPct / 100) * 380));
+    set((state) => {
+      const updatedVehicles = state.vehicles.map((v) => {
+        if (v.id === id || v.code.toLowerCase() === id.toLowerCase()) {
+          const isZero = clampedPct <= 0;
+          return {
+            ...v,
+            currentBatteryPct: clampedPct,
+            estimatedRangeKm: estimatedRange,
+            status: isZero ? ('STRANDED' as const) : clampedPct <= 20 ? ('LOW_BATTERY' as const) : v.status === 'STRANDED' ? ('EN_ROUTE' as const) : v.status,
+            speed: isZero ? 0 : v.speed,
+            vehicleHealth: isZero ? ('CRITICAL' as const) : clampedPct <= 20 ? ('WARNING' as const) : ('GOOD' as const),
+          };
+        }
+        return v;
+      });
+
+      const updatedSelected = state.selectedObject?.type === 'vehicle' && 
+        (state.selectedObject.id === id || (state.selectedObject.data as any)?.code?.toLowerCase() === id.toLowerCase())
+        ? {
+            ...state.selectedObject,
+            data: {
+              ...(state.selectedObject.data || {}),
+              currentBatteryPct: clampedPct,
+              estimatedRangeKm: estimatedRange,
+              status: clampedPct <= 0 ? 'STRANDED' : clampedPct <= 20 ? 'LOW_BATTERY' : ((state.selectedObject.data as any)?.status === 'STRANDED' ? 'EN_ROUTE' : ((state.selectedObject.data as any)?.status || 'EN_ROUTE')),
+              speed: clampedPct <= 0 ? 0 : ((state.selectedObject.data as any)?.speed ?? 40),
+              vehicleHealth: clampedPct <= 0 ? 'CRITICAL' : clampedPct <= 20 ? 'WARNING' : 'GOOD',
+            },
+          }
+        : state.selectedObject;
+
       return {
         vehicles: updatedVehicles,
         selectedObject: updatedSelected,

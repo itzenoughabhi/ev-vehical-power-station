@@ -312,16 +312,20 @@ export function MargdarshakModal({ isOpen, onClose, vehicle, stations }: Margdar
                     />
                     Margdarshak Traffic-Free
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-600 text-white">
-                    LEAST TIME
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-600 text-white flex items-center gap-1 shadow-xs">
+                    <span>⚡</span>
+                    <span>LEAST TIME • LESS TRAFFIC</span>
                   </span>
+                </div>
+                <div className="text-[11px] font-semibold text-emerald-800 font-sans mt-0.5">
+                  🛣️ {currentEvaluation?.fastestRoute.routeName}
                 </div>
                 <div className="flex items-baseline justify-between font-mono mt-1 text-xs">
                   <span className="text-emerald-700 font-bold text-sm">
                     {currentEvaluation?.fastestRoute.estimatedTimeMin} mins
                   </span>
                   <span className="text-slate-600">
-                    {currentEvaluation?.fastestRoute.distanceKm} km • {currentEvaluation?.fastestRoute.avgCongestionPct}% Congestion
+                    <strong className="text-emerald-700">{currentEvaluation?.fastestRoute.distanceKm} km</strong> • <strong className="text-emerald-600">{currentEvaluation?.fastestRoute.avgCongestionPct}% Congestion (Least Traffic)</strong>
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">
@@ -347,16 +351,20 @@ export function MargdarshakModal({ isOpen, onClose, vehicle, stations }: Margdar
                     />
                     Shortest Distance
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-600 text-white">
-                    MIN DISTANCE
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-600 text-white flex items-center gap-1 shadow-xs">
+                    <span>📏</span>
+                    <span>MIN DISTANCE</span>
                   </span>
+                </div>
+                <div className="text-[11px] font-semibold text-blue-800 font-sans mt-0.5">
+                  🛣️ {currentEvaluation?.shortestRoute.routeName}
                 </div>
                 <div className="flex items-baseline justify-between font-mono mt-1 text-xs">
                   <span className="text-blue-700 font-bold text-sm">
                     {currentEvaluation?.shortestRoute.estimatedTimeMin} mins
                   </span>
                   <span className="text-slate-600">
-                    {currentEvaluation?.shortestRoute.distanceKm} km • {currentEvaluation?.shortestRoute.avgCongestionPct}% Congestion
+                    <strong className="text-blue-700">{currentEvaluation?.shortestRoute.distanceKm} km (Min Distance)</strong> • {currentEvaluation?.shortestRoute.avgCongestionPct}% Congestion
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">
@@ -382,16 +390,20 @@ export function MargdarshakModal({ isOpen, onClose, vehicle, stations }: Margdar
                     />
                     Most Congested Corridor
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-600 text-white">
-                    HEAVY DELAY
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-600 text-white flex items-center gap-1 shadow-xs">
+                    <span>⚠️</span>
+                    <span>BUSIEST ROUTE • HEAVY DELAY</span>
                   </span>
+                </div>
+                <div className="text-[11px] font-semibold text-amber-900 font-sans mt-0.5">
+                  🛣️ {currentEvaluation?.congestedRoute.routeName}
                 </div>
                 <div className="flex items-baseline justify-between font-mono mt-1 text-xs">
                   <span className="text-amber-700 font-bold text-sm">
                     {currentEvaluation?.congestedRoute.estimatedTimeMin} mins
                   </span>
                   <span className="text-slate-600">
-                    {currentEvaluation?.congestedRoute.distanceKm} km • {currentEvaluation?.congestedRoute.avgCongestionPct}% Congestion
+                    {currentEvaluation?.congestedRoute.distanceKm} km • <strong className="text-amber-700">{currentEvaluation?.congestedRoute.avgCongestionPct}% Congestion (Busiest Corridor)</strong>
                   </span>
                 </div>
                 <p className="text-[10px] text-slate-500 mt-1">

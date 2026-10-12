@@ -52,6 +52,17 @@ export class WebSocketGateway {
         if (v) this.broadcastVehicleUpdate(v);
       });
 
+      socket.on('vehicle:set-battery', (payload?: { id?: string; vehicleCode?: string; batteryPct?: number; pct?: number }) => {
+        const target = payload?.id || payload?.vehicleCode;
+        const pct = payload?.batteryPct !== undefined ? payload.batteryPct : payload?.pct;
+        if (!target || pct === undefined) return;
+        const v = simulationEngine.setVehicleBattery(target, pct);
+        if (v) {
+          this.broadcastVehicleUpdate(v);
+          this.io.emit('vehicles:all', vehicleService.getAllVehicles());
+        }
+      });
+
       socket.on('simulation:surge', (payload?: { active?: boolean }) => {
         const pg = simulationEngine.triggerEnergySurge(payload?.active ?? true);
         this.io.emit('grid:update', pg);
@@ -195,6 +206,16 @@ export class WebSocketGateway {
           this.broadcastVehicleUpdate(v);
           this.io.emit('stations:all', stationService.getAllStations());
           this.io.emit('service:update', stationService.getServiceCenter());
+        }
+      });
+
+      socket.on('vehicle:tow', (payload?: { vehicleId: string }) => {
+        if (!payload?.vehicleId) return;
+        const res = simulationEngine.towVehicleToNearestStation(payload.vehicleId);
+        if (res) {
+          this.broadcastVehicleUpdate(res.strandedVehicle);
+          this.broadcastVehicleUpdate(res.towVehicle);
+          this.io.emit('stations:all', stationService.getAllStations());
         }
       });
 

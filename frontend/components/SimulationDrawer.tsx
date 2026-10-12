@@ -80,6 +80,14 @@ export function SimulationDrawer() {
           </button>
 
           <button
+            onClick={() => socketService.setVehicleBattery('EV-024', 0)}
+            className="w-full text-left py-2 px-3 rounded-lg bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-800/60 font-medium transition-colors flex items-center justify-between"
+          >
+            <span>+ Drain EV to 0% (Strand)</span>
+            <span className="text-[10px] text-red-400 font-mono">EV-024 @ 0%</span>
+          </button>
+
+          <button
             onClick={() => socketService.triggerEnergySurge(true)}
             className="w-full text-left py-2 px-3 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 text-amber-200 border border-amber-900/40 font-medium transition-colors flex items-center justify-between"
           >

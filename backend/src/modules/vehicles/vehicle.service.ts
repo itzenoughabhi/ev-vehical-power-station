@@ -7,6 +7,7 @@ import {
   generateCurvedRouteFromNodeIds,
   generateRandomRoute,
   getStationNodeId,
+  getStationHighwayNodeId,
   ROAD_NODES,
 } from './road.graph';
 
@@ -22,13 +23,13 @@ export const REGIONAL_CORRIDORS: Record<string, RegionalCorridor> = {
     id: 'boisar_town',
     name: 'Boisar Town & Railway Station Corridor',
     region: 'boisar',
-    nodes: ['BOISAR_TOWN', 'BOISAR_EAST', 'SUBSTATION_RECONNECT', 'SUBSTATION_NORTH_LINK', 'GRID_S01', 'FEEDER_AVE', 'NAVAPUR_CENTRAL', 'MIDC_BRANCH', 'CENTRAL_ROUNDABOUT', 'BOISAR_TOWN'],
+    nodes: ['BOISAR_TOWN', 'BOISAR_EAST', 'NORTH_OUTER', 'SUBSTATION_RECONNECT', 'SUBSTATION_NORTH_LINK', 'GRID_S01', 'FEEDER_AVE', 'NAVAPUR_CENTRAL', 'MIDC_BRANCH', 'CENTRAL_ROUNDABOUT', 'BOISAR_TOWN'],
   },
   palghar_sh40: {
     id: 'palghar_sh40',
     name: 'Boisar–Palghar Highway (SH-40)',
     region: 'palghar',
-    nodes: ['SARAVALI_JCT', 'SARAVALI_MID', 'BETEGAON_D305_HWY', 'D305_JUNCTION', 'BETEGAON_MID', 'UMROLI_JCT', 'PALGHAR_NORTH', 'P401_HIGHWAY', 'SHIRGAON_LINK_3', 'SHIRGAON_LINK_2', 'SHIRGAON_LINK_1', 'SHIRGAON_COAST_HWY', 'SHIRGAON_PT4', 'SHIRGAON_PT3', 'SHIRGAON_PT2', 'UMROLI_JCT', 'BETEGAON_MID', 'D305_JUNCTION', 'BETEGAON_D305_HWY', 'SARAVALI_MID', 'SARAVALI_JCT'],
+    nodes: ['SARAVALI_JCT', 'SARAVALI_MID', 'D305_JUNCTION', 'BETEGAON_MID', 'UMROLI_JCT', 'PALGHAR_NORTH', 'P401_HIGHWAY', 'SHIRGAON_LINK_3', 'SHIRGAON_LINK_2', 'SHIRGAON_LINK_1', 'SHIRGAON_COAST_HWY', 'SHIRGAON_PT4', 'SHIRGAON_PT3', 'SHIRGAON_PT2', 'UMROLI_JCT', 'BETEGAON_MID', 'D305_JUNCTION', 'SARAVALI_MID', 'SARAVALI_JCT'],
   },
   shirgaon_beach: {
     id: 'shirgaon_beach',
@@ -40,7 +41,7 @@ export const REGIONAL_CORRIDORS: Record<string, RegionalCorridor> = {
     id: 'tarapur_coast',
     name: 'Tarapur Coastal Highway near Chinchani',
     region: 'tarapur',
-    nodes: ['MIDC_BRANCH', 'NAVAPUR_CENTRAL', 'NAVAPUR_B104_HWY', 'NAVAPUR_OUTER', 'NAVAPUR_BEACH', 'CHINCHANI_COAST', 'T601_HIGHWAY', 'CHINCHANI_COAST', 'NAVAPUR_BEACH', 'NAVAPUR_OUTER', 'NAVAPUR_B104_HWY', 'NAVAPUR_CENTRAL', 'MIDC_BRANCH'],
+    nodes: ['MIDC_BRANCH', 'NAVAPUR_CENTRAL', 'NAVAPUR_B104_HWY', 'NAVAPUR_OUTER', 'CHINCHANI_COAST', 'T601_HIGHWAY', 'CHINCHANI_COAST', 'NAVAPUR_OUTER', 'NAVAPUR_B104_HWY', 'NAVAPUR_CENTRAL', 'MIDC_BRANCH'],
   },
   manor_express: {
     id: 'manor_express',
@@ -52,7 +53,7 @@ export const REGIONAL_CORRIDORS: Record<string, RegionalCorridor> = {
     id: 'dahanu_arterial',
     name: 'Dahanu Northern Arterial Highway',
     region: 'dahanu',
-    nodes: ['NORTH_OUTER', 'VANGAON_JCT', 'DAHANU_MID', 'D701_HIGHWAY', 'DAHANU_MID', 'VANGAON_JCT', 'NORTH_OUTER', 'BOISAR_EAST'],
+    nodes: ['NORTH_OUTER', 'VANGAON_JCT', 'DAHANU_MID', 'D701_HIGHWAY', 'DAHANU_MID', 'VANGAON_JCT', 'NORTH_OUTER'],
   },
   midc_industrial: {
     id: 'midc_industrial',
@@ -70,7 +71,7 @@ export const REGIONAL_CORRIDORS: Record<string, RegionalCorridor> = {
     id: 'betegaon_suburban',
     name: 'Saravali & Betegaon Residential Township',
     region: 'betegaon',
-    nodes: ['SARAVALI_MID', 'BETEGAON_HOME_024', 'BETEGAON_SEC', 'BETEGAON_HOME_088', 'BETEGAON_GREEN', 'BOISAR_EAST', 'BOISAR_TOWN', 'CENTRAL_ROUNDABOUT', 'SARAVALI_JCT', 'SARAVALI_MID'],
+    nodes: ['SARAVALI_JCT', 'BETEGAON_HOME_024', 'BETEGAON_SEC', 'BETEGAON_HOME_088', 'BETEGAON_GREEN', 'BOISAR_TOWN', 'CENTRAL_ROUNDABOUT', 'SARAVALI_JCT'],
   },
 };
 
@@ -113,18 +114,18 @@ export class VehicleService {
     const endNodeId = getStationNodeId(stationCode);
     let startNodeId = 'CENTRAL_ROUNDABOUT';
     if (fromPos) {
-      startNodeId = findNearestNodeId(fromPos);
+      startNodeId = findNearestNodeId(fromPos, false);
     } else {
       switch (stationCode) {
-        case 'A102': startNodeId = 'SARAVALI_JCT'; break;
-        case 'B104': startNodeId = 'NAVAPUR_CENTRAL'; break;
-        case 'C201': startNodeId = 'MIDC_BRANCH'; break;
-        case 'D305': startNodeId = 'BETEGAON_MID'; break;
-        case 'P401': startNodeId = 'PALGHAR_NORTH'; break;
-        case 'M501': startNodeId = 'MANOR_SURYA_RIVER'; break;
-        case 'T601': startNodeId = 'CHINCHANI_COAST'; break;
-        case 'D701': startNodeId = 'DAHANU_MID'; break;
-        case 'S801': startNodeId = 'SHIRGAON_PT4'; break;
+        case 'A102': startNodeId = 'BOISAR_EAST'; break;
+        case 'B104': startNodeId = 'NAVAPUR_B104_HWY'; break;
+        case 'C201': startNodeId = 'MIDC_C201_HWY'; break;
+        case 'D305': startNodeId = 'D305_JUNCTION'; break;
+        case 'P401': startNodeId = 'P401_HIGHWAY'; break;
+        case 'M501': startNodeId = 'M501_HIGHWAY'; break;
+        case 'T601': startNodeId = 'T601_HIGHWAY'; break;
+        case 'D701': startNodeId = 'D701_HIGHWAY'; break;
+        case 'S801': startNodeId = 'SHIRGAON_COAST_HWY'; break;
         default: startNodeId = 'CENTRAL_ROUNDABOUT'; break;
       }
     }
@@ -134,14 +135,14 @@ export class VehicleService {
 
   public static getRouteForServiceCenter(fromPos?: Position3D): Position3D[] {
     const endNodeId = 'S03_WORKSHOP_BAYS';
-    const startNodeId = fromPos ? findNearestNodeId(fromPos) : 'CENTRAL_ROUNDABOUT';
+    const startNodeId = fromPos ? findNearestNodeId(fromPos, false) : 'CENTRAL_ROUNDABOUT';
     const path = findShortestPath(startNodeId, endNodeId);
     return generateCurvedRouteFromNodeIds(path, fromPos);
   }
 
   public static getRouteFromCurrentPositionTo(fromPos: Position3D, toPos: Position3D): Position3D[] {
-    const startNodeId = findNearestNodeId(fromPos);
-    const endNodeId = findNearestNodeId(toPos);
+    const startNodeId = findNearestNodeId(fromPos, false);
+    const endNodeId = findNearestNodeId(toPos, false);
     const path = findShortestPath(startNodeId, endNodeId);
     return generateCurvedRouteFromNodeIds(path, fromPos, toPos);
   }
@@ -150,11 +151,64 @@ export class VehicleService {
     return generateRandomRoute(fromPos, currentHeading, excludeDestination);
   }
 
+  public static getDepartureRouteForCorridor(
+    stationCode: string,
+    corridorId: string,
+    vehiclePos: Position3D
+  ): Position3D[] {
+    const bayId = getStationNodeId(stationCode);
+    const entranceId = ROAD_NODES[bayId]?.neighbors[0] || 'A102_ENTRANCE';
+    const highwayNodeId = getStationHighwayNodeId(stationCode);
+
+    const corridor = REGIONAL_CORRIDORS[corridorId] || REGIONAL_CORRIDORS.boisar_town;
+    const corridorNodes = corridor.nodes;
+
+    // Build the departure node sequence:
+    // 1. Station bay & apron entrance
+    // 2. Highway merge junction node (the exact road the station is on)
+    // 3. Subsequent nodes along the vehicle's original corridor
+    const sequence: string[] = [bayId, entranceId, highwayNodeId];
+    const resumeNodeIndex = corridorNodes.indexOf(highwayNodeId);
+
+    if (resumeNodeIndex !== -1) {
+      for (let i = 1; i <= corridorNodes.length; i++) {
+        const nextNode = corridorNodes[(resumeNodeIndex + i) % corridorNodes.length];
+        sequence.push(nextNode);
+        if (sequence.length > 8) break;
+      }
+    } else {
+      let closestCorridorNode = corridorNodes[0];
+      let minD = Infinity;
+      const hwNode = ROAD_NODES[highwayNodeId];
+      for (const cNodeId of corridorNodes) {
+        const cNode = ROAD_NODES[cNodeId];
+        if (cNode && hwNode) {
+          const d = (cNode.x - hwNode.x) ** 2 + (cNode.z - hwNode.z) ** 2;
+          if (d < minD) {
+            minD = d;
+            closestCorridorNode = cNodeId;
+          }
+        }
+      }
+      const transitionPath = findShortestPath(highwayNodeId, closestCorridorNode);
+      for (const n of transitionPath.slice(1)) {
+        sequence.push(n);
+      }
+      const cIdx = corridorNodes.indexOf(closestCorridorNode);
+      if (cIdx !== -1) {
+        for (let i = 1; i <= 6; i++) {
+          sequence.push(corridorNodes[(cIdx + i) % corridorNodes.length]);
+        }
+      }
+    }
+
+    return generateCurvedRouteFromNodeIds(sequence, vehiclePos);
+  }
+
   public static getDepartureRoute(stationPosition: Position3D, vehiclePosition?: Position3D): Position3D[] {
-    const startNodeId = findNearestNodeId(stationPosition);
-    const endNodeId = stationPosition.z > 20 ? 'P401_HIGHWAY' : 'NORTH_OUTER';
-    const path = findShortestPath(startNodeId, endNodeId);
-    return generateCurvedRouteFromNodeIds(path, vehiclePosition || stationPosition);
+    const nearestNode = findNearestNodeId(stationPosition, false);
+    const corridorId = this.getNearestCorridorId(stationPosition);
+    return generateCurvedRouteFromNodeIds([nearestNode], vehiclePosition || stationPosition);
   }
 
   private seedVehicles() {
@@ -361,6 +415,7 @@ export class VehicleService {
         updatedAt: new Date().toISOString(),
       };
 
+      (appVehicle as any)._corridorId = app.code === 'EV-088' ? 'palghar_sh40' : 'boisar_town';
       this.vehicles.set(appVehicle.id, appVehicle);
     }
   }

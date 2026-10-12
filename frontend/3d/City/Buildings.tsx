@@ -43,24 +43,24 @@ const ScaledGLBModel = React.memo(function ScaledGLBModel({
 
 const BOISAR_LANDMARKS = [
   { path: '/models/city/skyscraper.glb', pos: [24, 0, 195] as [number, number, number], rot: [0, -Math.PI / 4, 0] as [number, number, number], scale: 0.88 },
-  { path: '/models/city/skyscraper.glb', pos: [85, 0, 215] as [number, number, number], rot: [0, 0.4, 0] as [number, number, number], scale: 0.72 },
-  { path: '/models/city/apartment_building.glb', pos: [115, 0, 185] as [number, number, number], rot: [0, 0, 0] as [number, number, number], scale: 0.55 },
+  { path: '/models/city/skyscraper.glb', pos: [98, 0, 215] as [number, number, number], rot: [0, 0.4, 0] as [number, number, number], scale: 0.72 },
+  { path: '/models/city/apartment_building.glb', pos: [120, 0, 185] as [number, number, number], rot: [0, 0, 0] as [number, number, number], scale: 0.55 },
 
   { path: '/models/city/large_building.glb', pos: [-60, 0, 230] as [number, number, number], rot: [0, 0.4, 0] as [number, number, number], scale: 3.2 },
   { path: '/models/city/townhouse.glb', pos: [-85, 0, 235] as [number, number, number], rot: [0, -0.3, 0] as [number, number, number], scale: 1.25 },
-  { path: '/models/city/house.glb', pos: [-110, 0, 210] as [number, number, number], rot: [0, 0.2, 0] as [number, number, number], scale: 0.24 },
+  { path: '/models/city/house.glb', pos: [-128, 0, 215] as [number, number, number], rot: [0, 0.2, 0] as [number, number, number], scale: 0.24 },
 
   { path: '/models/city/hotel.glb', pos: [218, 0, -50] as [number, number, number], rot: [0, -Math.PI / 2, 0] as [number, number, number], scale: 2.2 },
   { path: '/models/city/large_building.glb', pos: [185, 0, -55] as [number, number, number], rot: [0, 0.25, 0] as [number, number, number], scale: 4.2 },
 
   { path: '/models/city/apartment_building.glb', pos: [60, 0, -205] as [number, number, number], rot: [0, Math.PI / 3, 0] as [number, number, number], scale: 0.55 },
-  { path: '/models/city/townhouse.glb', pos: [75, 0, -235] as [number, number, number], rot: [0, 0.5, 0] as [number, number, number], scale: 1.30 },
+  { path: '/models/city/townhouse.glb', pos: [78, 0, -235] as [number, number, number], rot: [0, 0.5, 0] as [number, number, number], scale: 1.30 },
 
   { path: '/models/city/hotel.glb', pos: [52, 0, -62] as [number, number, number], rot: [0, -Math.PI / 3, 0] as [number, number, number], scale: 2.2 },
 
   { path: '/models/city/townhouse.glb', pos: [72, 0, 38] as [number, number, number], rot: [0, -0.6, 0] as [number, number, number], scale: 1.30 },
   { path: '/models/city/house.glb', pos: [95, 0, 48] as [number, number, number], rot: [0, 0.4, 0] as [number, number, number], scale: 0.22 },
-  { path: '/models/city/apartment.glb', pos: [74, 0, 76] as [number, number, number], rot: [0, 0.5, 0] as [number, number, number], scale: 0.55 },
+  { path: '/models/city/apartment.glb', pos: [82, 0, 85] as [number, number, number], rot: [0, 0.5, 0] as [number, number, number], scale: 0.55 },
 
   { path: '/models/city/science_centre.glb', pos: [-58, 0, 2] as [number, number, number], rot: [0, 0.4, 0] as [number, number, number], scale: 0.55 },
   { path: '/models/city/large_building.glb', pos: [-82, 0, 24] as [number, number, number], rot: [0, -Math.PI / 4, 0] as [number, number, number], scale: 4.8 },

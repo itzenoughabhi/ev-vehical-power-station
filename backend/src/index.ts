@@ -118,9 +118,19 @@ apiRouter.post('/simulation/ev-fault', (req, res) => {
 
 apiRouter.post('/simulation/low-battery', (req, res) => {
   const { vehicleCode, pct } = req.body;
-  const v = simulationEngine.triggerLowBattery(vehicleCode || 'EV-024', pct || 18);
+  const targetPct = pct !== undefined ? Number(pct) : 18;
+  const v = simulationEngine.triggerLowBattery(vehicleCode || 'EV-024', targetPct);
   if (v) wsGateway.broadcastVehicleUpdate(v);
   res.json({ success: true, vehicle: v });
+});
+
+apiRouter.post('/simulation/vehicle-battery', (req, res) => {
+  const { id, vehicleId, vehicleCode, batteryPct, pct } = req.body;
+  const target = id || vehicleId || vehicleCode || 'EV-024';
+  const targetPct = batteryPct !== undefined ? Number(batteryPct) : (pct !== undefined ? Number(pct) : 50);
+  const v = simulationEngine.setVehicleBattery(target, targetPct);
+  if (v) wsGateway.broadcastVehicleUpdate(v);
+  res.json({ success: Boolean(v), vehicle: v });
 });
 
 apiRouter.post('/simulation/surge', (req, res) => {
@@ -133,6 +143,16 @@ apiRouter.post('/simulation/service-route', (req, res) => {
   const { vehicleId } = req.body;
   const ok = vehicleService.sendToService(vehicleId || 'veh-ev-024');
   res.json({ success: ok });
+});
+
+apiRouter.post('/simulation/tow', (req, res) => {
+  const { vehicleId } = req.body;
+  const result = simulationEngine.towVehicleToNearestStation(vehicleId);
+  if (result) {
+    wsGateway.broadcastVehicleUpdate(result.strandedVehicle);
+    wsGateway.broadcastVehicleUpdate(result.towVehicle);
+  }
+  res.json({ success: !!result, result });
 });
 
 apiRouter.post('/simulation/finish-repair', (req, res) => {

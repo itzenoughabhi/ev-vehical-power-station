@@ -10,9 +10,9 @@ const DEFAULT_SIGNALS: TrafficSignal[] = [
     id: 'SIG_BOISAR_TOWN',
     name: 'Boisar Town Center Junction',
     intersection: 'Boisar Town Center',
-    position: { x: 9.5, y: 0, z: -15.5 },
-    stopLine: { x: 6.0, y: 0, z: -15.0 },
-    heading: 0.4,
+    position: { x: 18.0, y: 0, z: -18.0 },
+    stopLine: { x: 12.0, y: 0, z: -18.0 },
+    heading: 0,
     state: 'GREEN',
     timeRemainingSec: 10,
   },
@@ -20,8 +20,8 @@ const DEFAULT_SIGNALS: TrafficSignal[] = [
     id: 'SIG_UMROLI_JCT',
     name: 'Umroli Regional Interchange (SH-40 Corridor)',
     intersection: 'Umroli Interchange',
-    position: { x: 37.5, y: 0, z: 133.0 },
-    stopLine: { x: 34.0, y: 0, z: 131.0 },
+    position: { x: 46.5, y: 0, z: 155.0 },
+    stopLine: { x: 40.0, y: 0, z: 153.0 },
     heading: 0,
     state: 'GREEN',
     timeRemainingSec: 12,
@@ -30,18 +30,18 @@ const DEFAULT_SIGNALS: TrafficSignal[] = [
     id: 'SIG_SHIRGAON_BRANCH',
     name: 'Umroli Interchange (Shirgaon Coastal Branch)',
     intersection: 'Umroli Interchange',
-    position: { x: 28.0, y: 0, z: 140.0 },
-    stopLine: { x: 26.0, y: 0, z: 138.0 },
+    position: { x: 32.0, y: 0, z: 162.0 },
+    stopLine: { x: 36.0, y: 0, z: 157.0 },
     heading: -0.7,
-    state: 'RED',
+    state: 'GREEN',
     timeRemainingSec: 12,
   },
   {
     id: 'SIG_PALGHAR_JCT',
     name: 'Palghar Highway Junction',
     intersection: 'Palghar Collectorate Junction',
-    position: { x: 50.5, y: 0, z: 196.0 },
-    stopLine: { x: 46.0, y: 0, z: 194.0 },
+    position: { x: 57.0, y: 0, z: 215.0 },
+    stopLine: { x: 50.0, y: 0, z: 215.0 },
     heading: 0,
     state: 'GREEN',
     timeRemainingSec: 10,
@@ -50,18 +50,48 @@ const DEFAULT_SIGNALS: TrafficSignal[] = [
     id: 'SIG_TARAPUR_MIDC',
     name: 'Tarapur MIDC Chemical Sector Junction',
     intersection: 'Tarapur MIDC Split',
-    position: { x: -17.0, y: 0, z: 5.0 },
-    stopLine: { x: -15.0, y: 0, z: 4.0 },
+    position: { x: -36.5, y: 0, z: -5.0 },
+    stopLine: { x: -30.0, y: 0, z: -5.0 },
     heading: -Math.PI / 2,
     state: 'GREEN',
     timeRemainingSec: 10,
   },
   {
+    id: 'SIG_SARAVALI_JCT',
+    name: 'Saravali Regional 4-Way Interchange',
+    intersection: 'Saravali Regional Junction',
+    position: { x: 20.0, y: 0, z: 30.0 },
+    stopLine: { x: 14.0, y: 0, z: 30.0 },
+    heading: 0,
+    state: 'GREEN',
+    timeRemainingSec: 10,
+  },
+  {
+    id: 'SIG_NORTH_OUTER',
+    name: 'North Boisar Outer 3-Way Interchange',
+    intersection: 'North Outer Interchange',
+    position: { x: 38.0, y: 0, z: -60.0 },
+    stopLine: { x: 32.0, y: 0, z: -60.0 },
+    heading: 0,
+    state: 'GREEN',
+    timeRemainingSec: 10,
+  },
+  {
+    id: 'SIG_SHIRGAON_COAST',
+    name: 'Shirgaon Beach Coastal 3-Way Junction',
+    intersection: 'Shirgaon Beach Promenade',
+    position: { x: -95.0, y: 0, z: 208.0 },
+    stopLine: { x: -95.0, y: 0, z: 215.0 },
+    heading: Math.PI / 2,
+    state: 'GREEN',
+    timeRemainingSec: 12,
+  },
+  {
     id: 'SIG_MANOR_EXPRESS',
     name: 'Manor NH-48 Express Terminal',
     intersection: 'Manor Express Junction',
-    position: { x: 206.0, y: 0, z: -8.0 },
-    stopLine: { x: 203.0, y: 0, z: -8.0 },
+    position: { x: 205.0, y: 0, z: -32.0 },
+    stopLine: { x: 205.0, y: 0, z: -25.0 },
     heading: Math.PI / 2,
     state: 'GREEN',
     timeRemainingSec: 10,
@@ -79,34 +109,39 @@ const SignalPost = React.memo(function SignalPost({ signal }: SignalPostProps) {
 
   const armVecX = signal.stopLine.x - signal.position.x;
   const armVecZ = signal.stopLine.z - signal.position.z;
+  const armDist = Math.max(3.5, Math.hypot(armVecX, armVecZ));
   const armAngle = Math.atan2(armVecX, armVecZ);
 
   const stopBarAngle = signal.heading ?? armAngle;
 
   return (
     <group position={[signal.position.x, 0, signal.position.z]}>
+      {/* Curb-Mounted Heavy Concrete Foundation */}
       <mesh position={[0, 0.08, 0]}>
         <cylinderGeometry args={[0.32, 0.38, 0.16, 16]} />
         <meshStandardMaterial color="#334155" roughness={0.6} metalness={0.5} />
       </mesh>
 
-      <mesh position={[0, 2.25, 0]} castShadow>
-        <cylinderGeometry args={[0.10, 0.14, 4.5, 16]} />
+      {/* Sidewalk Vertical Mast (Outside the road curb) */}
+      <mesh position={[0, 2.35, 0]} castShadow>
+        <cylinderGeometry args={[0.10, 0.14, 4.7, 16]} />
         <meshStandardMaterial color="#475569" roughness={0.4} metalness={0.6} />
       </mesh>
 
-      <group position={[0, 4.2, 0]} rotation={[0, armAngle, 0]}>
-        <mesh position={[0, 0, 1.3]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.09, 2.6, 12]} />
+      {/* High Overhead Cantilever Arm (4.3m clearance above road) */}
+      <group position={[0, 4.3, 0]} rotation={[0, armAngle, 0]}>
+        <mesh position={[0, 0, armDist * 0.45]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[0.07, 0.09, armDist * 0.9, 12]} />
           <meshStandardMaterial color="#475569" roughness={0.4} metalness={0.6} />
         </mesh>
 
-        <mesh position={[0, -0.4, 0.8]} rotation={[0.45, 0, 0]}>
+        <mesh position={[0, -0.4, armDist * 0.3]} rotation={[0.45, 0, 0]}>
           <cylinderGeometry args={[0.04, 0.04, 1.2, 8]} />
           <meshStandardMaterial color="#475569" roughness={0.4} metalness={0.6} />
         </mesh>
 
-        <group position={[0, -0.6, 2.4]} rotation={[0, -armAngle + signal.heading, 0]}>
+        {/* High Overhead Traffic Signal Head */}
+        <group position={[0, -0.6, armDist * 0.65]} rotation={[0, -armAngle + signal.heading, 0]}>
           <mesh castShadow>
             <boxGeometry args={[0.36, 1.05, 0.28]} />
             <meshStandardMaterial color="#09090b" roughness={0.5} />
@@ -161,6 +196,7 @@ const SignalPost = React.memo(function SignalPost({ signal }: SignalPostProps) {
         </group>
       </group>
 
+      {/* Road Markings Flush with Asphalt */}
       <group
         position={[signal.stopLine.x - signal.position.x, 0.052, signal.stopLine.z - signal.position.z]}
         rotation={[-Math.PI / 2, 0, stopBarAngle + Math.PI / 2]}
@@ -175,5 +211,14 @@ const SignalPost = React.memo(function SignalPost({ signal }: SignalPostProps) {
 });
 
 export function TrafficSignals3D() {
-  return null;
+  const storeSignals = useDigitalTwinStore((s) => s.trafficSignals);
+  const signals = storeSignals && storeSignals.length > 0 ? storeSignals : DEFAULT_SIGNALS;
+
+  return (
+    <group name="TrafficSignals3D">
+      {signals.map((sig) => (
+        <SignalPost key={sig.id} signal={sig} />
+      ))}
+    </group>
+  );
 }

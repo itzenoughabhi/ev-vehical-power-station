@@ -113,32 +113,25 @@ export function TrafficProps() {
   }, []);
 
   const coneLocations: Array<{ pos: [number, number, number]; rot?: [number, number, number] }> = [
-    { pos: [-20, 0.06, 17.2] },
-    { pos: [-21.2, 0.06, 17.2] },
-    { pos: [-22.4, 0.06, 17.2] },
+    // Service Center Diagnostics Maintenance Yard (Off-Road)
+    { pos: [-38, 0.06, 136] },
+    { pos: [-39.2, 0.06, 136] },
+    { pos: [-40.4, 0.06, 136] },
 
-    { pos: [18, 0.06, 27.2] },
-    { pos: [19.2, 0.06, 27.2] },
-    { pos: [20.4, 0.06, 27.2] },
+    // Substation Utility Perimeter (Off-Road)
+    { pos: [-44, 0.06, -82] },
+    { pos: [-45.2, 0.06, -82] },
+    { pos: [-46.4, 0.06, -82] },
 
-    { pos: [12, 0.06, -37.8] },
-    { pos: [14, 0.06, -37.8] },
-    { pos: [16, 0.06, -37.8] },
-    { pos: [18, 0.06, -37.8] },
-
-    { pos: [-20, 0.06, -26.8] },
-    { pos: [-21.5, 0.06, -26.8] },
-
-    { pos: [-4.2, 0.06, 4.2], rot: [0, 0.4, 0] },
-    { pos: [4.2, 0.06, -4.2], rot: [0, -0.4, 0] },
+    // Heritage Garden Boundary (Off-Road)
+    { pos: [88, 0.06, 24] },
+    { pos: [89.5, 0.06, 24] },
   ];
 
   const barricadeLocations: Array<{ pos: [number, number, number]; rot?: [number, number, number] }> = [
-    { pos: [15, 0.06, -35.2], rot: [0, 0, 0] },
-    
-    { pos: [20, 0.06, -23.5], rot: [0, Math.PI / 2, 0] },
-
-    { pos: [-35.5, 0.06, 12], rot: [0, 0, 0] },
+    // Maintenance Depot Perimeter (Off-Road)
+    { pos: [-42, 0.06, 138], rot: [0, 0, 0] },
+    { pos: [-48, 0.06, -84], rot: [0, Math.PI / 2, 0] },
   ];
 
   if (activeGLBPath) {

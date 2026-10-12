@@ -34,6 +34,8 @@ export type VehicleStatus =
   | 'DEPARTING' 
   | 'LEAVING_STATION'
   | 'LOW_BATTERY' 
+  | 'STRANDED'
+  | 'BEING_TOWED'
   | 'FAULT' 
   | 'SERVICE_REQUIRED' 
   | 'UNDER_REPAIR' 
@@ -56,6 +58,8 @@ export type TrafficState =
   | 'FAULT'
   | 'REROUTING'
   | 'SERVICE_ROUTE'
+  | 'TOWING'
+  | 'BEING_TOWED'
   | 'RETURNING';
 
 export type VehicleModel = 
@@ -153,6 +157,8 @@ export interface Vehicle {
   serviceCenterId: string | null;
   repairProgressPct: number;
   repairStage?: 'DIAGNOSIS' | 'REPAIR_IN_PROGRESS' | 'REPAIR_COMPLETE';
+  towedByVehicleId?: string | null;
+  towingVehicleId?: string | null;
   updatedAt: string;
 }
 

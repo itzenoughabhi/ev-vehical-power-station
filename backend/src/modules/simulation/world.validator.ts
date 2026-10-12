@@ -67,7 +67,7 @@ export class WorldValidator {
       { name: 'Umroli Interchange', x: 34, z: 135 },
       { name: 'D305 Highway Junction', x: 26, z: 65 },
       { name: 'Navapur Highway', x: -48, z: -16 },
-      { name: 'Tarapur Coastal Highway', x: -96, z: -24 },
+      { name: 'Navapur Highway B104 Junction', x: -95, z: -10 },
       { name: 'Manor Expressway Terminus', x: 210, z: -8 },
       { name: 'Dahanu Highway Terminus', x: 32, z: -220 },
       { name: 'Shirgaon Beach Highway', x: -65, z: 205 },

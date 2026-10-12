@@ -168,6 +168,7 @@ export function DigitalTwinScene() {
         <CameraRig />
 
         <RoadNetwork />
+        <TrafficSignals3D />
 
         <DebugOverlay3D />
 

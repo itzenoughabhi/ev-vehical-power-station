@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useDigitalTwinStore } from '../store/useDigitalTwinStore';
-import { ChevronLeft, ChevronRight, Compass, Building2, Factory, Waves, Landmark, Truck, Palmtree } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Compass, Building2, Factory, Waves, Landmark, Truck, Palmtree, GripVertical } from 'lucide-react';
 
 interface SectorItem {
   id: 'overview' | 'boisar' | 'tarapur' | 'dahanu' | 'palghar' | 'manor' | 'shirgaon';
@@ -71,6 +71,18 @@ export function SwipableDistrictDock() {
   const togglePanMode = useDigitalTwinStore((s) => s.togglePanMode);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Movable anywhere on screen state
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; initialPosX: number; initialPosY: number }>({
+    startX: 0,
+    startY: 0,
+    initialPosX: 0,
+    initialPosY: 0,
+  });
+
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
       const offset = direction === 'left' ? -180 : 180;
@@ -78,9 +90,96 @@ export function SwipableDistrictDock() {
     }
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    // Do not initiate drag if clicking on interactive buttons (scroll, sector items, swipe toggle)
+    if (target.closest('button') && !target.closest('.drag-handle')) {
+      return;
+    }
+
+    if (!dockRef.current) return;
+    const rect = dockRef.current.getBoundingClientRect();
+    const currentX = position ? position.x : rect.left;
+    const currentY = position ? position.y : rect.top;
+
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialPosX: currentX,
+      initialPosY: currentY,
+    };
+  };
+
+  useEffect(() => {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDraggingRef.current || !dockRef.current) return;
+
+      const deltaX = e.clientX - dragStartRef.current.startX;
+      const deltaY = e.clientY - dragStartRef.current.startY;
+
+      const dockWidth = dockRef.current.offsetWidth;
+      const dockHeight = dockRef.current.offsetHeight;
+
+      const rawX = dragStartRef.current.initialPosX + deltaX;
+      const rawY = dragStartRef.current.initialPosY + deltaY;
+
+      // Clamp within visible viewport boundaries
+      const clampedX = Math.max(8, Math.min(window.innerWidth - dockWidth - 8, rawX));
+      const clampedY = Math.max(8, Math.min(window.innerHeight - dockHeight - 8, rawY));
+
+      setPosition({ x: clampedX, y: clampedY });
+    };
+
+    const handlePointerUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setIsDragging(false);
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+  }, []);
+
   return (
-    <div className="fixed top-18 left-1/2 -translate-x-1/2 z-20 select-none pointer-events-auto max-w-[92vw] md:max-w-3xl">
-      <div className="bg-slate-900/85 backdrop-blur-md border border-slate-700/60 rounded-2xl p-1.5 shadow-2xl flex items-center gap-1 ring-1 ring-white/10">
+    <div
+      ref={dockRef}
+      onPointerDown={handlePointerDown}
+      className={`fixed z-30 select-none pointer-events-auto max-w-[96vw] md:max-w-3xl touch-none ${
+        isDragging ? 'cursor-grabbing ring-2 ring-blue-500/50 shadow-2xl scale-[1.01]' : ''
+      }`}
+      style={
+        position
+          ? {
+              top: `${position.y}px`,
+              left: `${position.x}px`,
+              transform: 'none',
+            }
+          : {
+              top: '4.5rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+            }
+      }
+    >
+      <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/60 rounded-2xl p-1.5 shadow-2xl flex items-center gap-1 ring-1 ring-white/10">
+        {/* Drag handle to move anywhere */}
+        <div
+          className="drag-handle cursor-grab active:cursor-grabbing p-1.5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors shrink-0"
+          title="Click and drag to move anywhere on the screen"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+
         <button
           onClick={() => scroll('left')}
           className="p-1 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden sm:flex items-center justify-center"
